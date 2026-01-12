@@ -1,0 +1,313 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                     BattleBoosting - CMS PROJECT PLAN                       ║
+║                         Next.js Admin Dashboard                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROYECTO SEPARADO: CMS para gestionar contenido de BattleBoosting
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ STACK                                                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ • Next.js 15+ (App Router)          → Framework React                      │
+│ • TypeScript                        → Tipado estricto                      │
+│ • Tailwind CSS                      → Estilos                              │
+│ • @neondatabase/serverless          → Conexión PostgreSQL (misma DB)       │
+│ • NextAuth.js v5 (Auth.js)          → Autenticación                        │
+│ • React Hook Form + Zod             → Validación formularios               │
+│ • pnpm                              → Package manager                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASO A PASO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. CREAR PROYECTO
+   pnpm create next-app@latest battleboosting-cms
+   → TypeScript: Yes
+   → ESLint: Yes
+   → Tailwind CSS: Yes
+   → App Router: Yes
+
+2. INSTALAR DEPENDENCIAS
+   pnpm add @neondatabase/serverless
+   pnpm add next-auth@beta bcryptjs zod
+   pnpm add react-hook-form @hookform/resolvers
+   pnpm add @vercel/blob
+
+3. CONFIGURAR BASE DE DATOS
+   • Crear lib/db.ts (conexión Neon - misma DATABASE_URL)
+   • Reutilizar schema existente (users, games, categories, services)
+   • Usar misma tabla users para autenticación
+
+4. CONFIGURAR NEXTAUTH
+   • app/api/auth/[...nextauth]/route.ts
+   • Credentials provider con tabla users
+   • Session strategy: JWT
+   • Verificar role='admin' en callbacks
+
+5. PROTEGER RUTAS
+   • middleware.ts → Redirigir /dashboard si no autenticado
+   • Verificar session en server components
+   • Solo permitir usuarios con role='admin'
+
+6. PÁGINAS PRINCIPALES
+
+   /login
+   ├─ Formulario email/password
+   └─ Validación con Zod + NextAuth signIn
+
+   /dashboard
+   ├─ Layout con sidebar
+   ├─ Stats básicas (contadores)
+   └─ 4 Secciones principales:
+
+       [JUEGOS]
+       ├─ Card con imagen + título
+       ├─ Lista tabla: ID, Title, Category
+       ├─ Botones: Edit, Delete
+       └─ Modal/Form: Editar campos (title, category, image)
+
+       [CATEGORÍAS]
+       ├─ Card con icono + nombre
+       ├─ Lista tabla: ID, Name, Icon, Description
+       ├─ Botones: Edit, Delete
+       └─ Modal/Form: Editar campos
+
+       [SERVICIOS]
+       ├─ Card con imagen + precio
+       ├─ Lista tabla: ID, Title, Category, Price
+       ├─ Botones: Edit, Delete, Manage Prices
+       └─ Modales:
+           • Editar servicio básico
+           • Gestionar service_prices (JSONB configs)
+           • Asignar juegos (service_games M:N)
+
+       [IMÁGENES]
+       ├─ Grid de cards pequeñas con imagen
+       ├─ Click en card → Copiar URL al portapapeles
+       ├─ Botón "Delete" en cada card
+       ├─ Botón "Upload Images" → Modal con drag & drop
+       └─ Integración: @vercel/blob para storage
+
+7. API ROUTES (Server Actions preferidos)
+   app/actions/
+   ├─ games.ts      → CRUD juegos
+   ├─ categories.ts → CRUD categorías
+   ├─ services.ts   → CRUD servicios + prices + games
+   └─ images.ts     → Upload/Delete imágenes (Vercel Blob)
+
+8. COMPONENTES CLAVE
+   components/
+   ├─ DataTable.tsx        → Tabla reutilizable con paginación
+   ├─ EditModal.tsx        → Modal genérico para editar
+   ├─ CardGrid.tsx         → Grid de cards para cada sección
+   ├─ ImageCard.tsx        → Card con preview + botón copy URL
+   └─ ImageUpload.tsx      → Drag & drop para subir imágenes
+   └─ CardGrid.tsx         → Grid de cards para cada sección
+
+9. DEPLOY
+   • Vercel (auto-deploy con git)
+   • BLOB_READ_WRITE_TOKEN para Vercel Blob storage
+   • Misma DATABASE_URL de Neon
+   • Variable AUTH_SECRET para NextAuth
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FLUJO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Admin login → Edita contenido → Guarda en DB → Web Astro refleja cambios
+No requiere redeploy
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NOTAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Ambos proyectos comparten misma DB Neon
+• Usar Server Actions (no API routes)
+• Validar role='admin' en mutaciones
+• Imágenes en Vercel Blob, DB solo guarda URLs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LÍNEA GRÁFICA - CMS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+El CMS debe seguir la estética cyberpunk/gaming del proyecto principal
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PALETA DE COLORES                                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Primarios:                                                                  │
+│   • Púrpura oscuro:  #1a0b2e  (fondos principales)                         │
+│   • Azul profundo:   #16213e  (fondos secundarios)                         │
+│                                                                              │
+│ Acentos neón:                                                               │
+│   • Púrpura neón:    #a855f7  (botones primarios, highlights)              │
+│   • Azul cyan:       #38bdf8  (links, iconos)                              │
+│   • Rosa neón:       #ec4899  (estados hover, alertas)                     │
+│   • Verde neón:      #22c55e  (success, confirmaciones)                    │
+│                                                                              │
+│ Neutros:                                                                    │
+│   • Blanco:          #ffffff  (textos principales)                          │
+│   • Gris claro:      #e2e8f0  (textos secundarios)                         │
+│   • Gris medio:      #64748b  (textos disabled)                            │
+│   • Negro:           #0f172a  (fondos cards)                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ EFECTOS VISUALES                                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Glow/Neón:                                                                  │
+│   • Botones:     box-shadow: 0 0 20px rgba(168, 85, 247, 0.5)             │
+│   • Borders:     border: 1px solid rgba(168, 85, 247, 0.3)                │
+│   • Text glow:   text-shadow: 0 0 10px rgba(168, 85, 247, 0.8)            │
+│                                                                              │
+│ Glassmorphism:                                                              │
+│   • Background:  rgba(26, 11, 46, 0.7)                                     │
+│   • Backdrop:    backdrop-filter: blur(10px)                                │
+│   • Border:      border: 1px solid rgba(255, 255, 255, 0.1)               │
+│                                                                              │
+│ Degradados:                                                                 │
+│   • Principal:   linear-gradient(135deg, #1a0b2e 0%, #16213e 100%)        │
+│   • Hover:       linear-gradient(135deg, #2d1b4e 0%, #1e3a5f 100%)        │
+│   • Neón:        linear-gradient(90deg, #a855f7 0%, #ec4899 100%)         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TIPOGRAFÍA                                                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Fuente principal: Inter (sans-serif)                                       │
+│   • Headings:    font-weight: 700 (bold)                                   │
+│   • Body:        font-weight: 400 (regular)                                │
+│   • Small:       font-weight: 500 (medium)                                 │
+│                                                                              │
+│ Tamaños:                                                                    │
+│   • H1: 2.5rem (40px)                                                       │
+│   • H2: 2rem (32px)                                                         │
+│   • H3: 1.5rem (24px)                                                       │
+│   • Body: 1rem (16px)                                                       │
+│   • Small: 0.875rem (14px)                                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ COMPONENTES UI                                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Botones:                                                                    │
+│   • Primary:     bg-purple-600 + glow effect + hover:scale-105            │
+│   • Secondary:   bg-transparent + border neón + hover:bg-purple-900       │
+│   • Danger:      bg-red-600 + glow rosa                                    │
+│   • Radius:      rounded-lg (8px)                                           │
+│   • Padding:     px-6 py-3                                                  │
+│                                                                              │
+│ Cards:                                                                      │
+│   • Background:  bg-slate-900/50 + glassmorphism                           │
+│   • Border:      border neón sutil (1px, opacity 0.3)                      │
+│   • Shadow:      shadow-xl + glow suave                                     │
+│   • Radius:      rounded-xl (12px)                                          │
+│   • Hover:       scale(1.02) + brighter glow                               │
+│                                                                              │
+│ Inputs:                                                                     │
+│   • Background:  bg-slate-800/50                                            │
+│   • Border:      border-purple-500/30                                       │
+│   • Focus:       border-purple-500 + ring purple                           │
+│   • Radius:      rounded-lg (8px)                                           │
+│   • Padding:     px-4 py-2                                                  │
+│                                                                              │
+│ Tables:                                                                     │
+│   • Header:      bg-purple-900/30 + border-b neón                          │
+│   • Row hover:   bg-purple-900/20                                           │
+│   • Borders:     border-purple-500/20                                       │
+│   • Text:        text-sm + text-white/90                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ANIMACIONES                                                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Transiciones:                                                               │
+│   • Duración:    200ms - 300ms                                              │
+│   • Easing:      ease-in-out                                                │
+│                                                                              │
+│ Hover effects:                                                              │
+│   • Buttons:     transform: scale(1.05)                                     │
+│   • Cards:       transform: scale(1.02) + brighten glow                    │
+│   • Links:       color shift + underline neón                              │
+│                                                                              │
+│ Loading:                                                                    │
+│   • Spinner:     border-purple-500 + animate-spin                          │
+│   • Skeleton:    bg-gradient shimmer (purple → transparent)                │
+│   • Pulse:       animate-pulse + opacity changes                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ LAYOUT CMS                                                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Sidebar:                                                                    │
+│   • Width:       280px (fixed)                                              │
+│   • Background:  gradient purple oscuro                                     │
+│   • Items:       hover con glow neón                                        │
+│   • Active:      border-left púrpura + bg highlight                        │
+│                                                                              │
+│ Header:                                                                     │
+│   • Height:      64px                                                       │
+│   • Background:  glassmorphism + backdrop blur                             │
+│   • Border:      border-b neón sutil                                        │
+│                                                                              │
+│ Content:                                                                    │
+│   • Background:  gradient dark (top → bottom)                              │
+│   • Padding:     p-8                                                        │
+│   • Max-width:   1400px (centered)                                          │
+│                                                                              │
+│ Modales:                                                                    │
+│   • Overlay:     bg-black/70 + backdrop-blur                               │
+│   • Card:        glassmorphism + border neón                               │
+│   • Shadow:      shadow-2xl + glow púrpura                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ICONOGRAFÍA                                                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Librería: Lucide React (mismo que proyecto principal)                      │
+│                                                                              │
+│ Estilo:                                                                     │
+│   • Size:        20px - 24px (iconos UI)                                   │
+│   • Stroke:      2px (line weight)                                          │
+│   • Color:       text-purple-400 (default)                                 │
+│   • Hover:       text-purple-300 + glow                                     │
+│                                                                              │
+│ Ejemplos:                                                                   │
+│   • Games:       Gamepad2                                                   │
+│   • Services:    Package                                                    │
+│   • Categories:  Folder                                                     │
+│   • Images:      Image                                                      │
+│   • Edit:        Pencil                                                     │
+│   • Delete:      Trash2                                                     │
+│   • Save:        Check                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TAILWIND CONFIG (tailwind.config.js)                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ theme: {                                                                    │
+│   extend: {                                                                 │
+│     colors: {                                                               │
+│       'cyber': {                                                            │
+│         'dark': '#1a0b2e',                                                  │
+│         'purple': '#a855f7',                                                │
+│         'cyan': '#38bdf8',                                                  │
+│         'pink': '#ec4899',                                                  │
+│       }                                                                      │
+│     },                                                                       │
+│     boxShadow: {                                                            │
+│       'neon': '0 0 20px rgba(168, 85, 247, 0.5)',                          │
+│       'neon-strong': '0 0 30px rgba(168, 85, 247, 0.8)',                   │
+│     }                                                                        │
+│   }                                                                          │
+│ }                                                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                              FIN DEL DOCUMENTO                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝

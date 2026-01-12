@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+/* Variables CSS personalizadas */
+@theme {
+  /* Colores cyberpunk */
+  --color-cyber-dark: #1a0b2e;
+  --color-cyber-dark-alt: #16213e;
+  --color-cyber-purple: #a855f7;
+  --color-cyber-cyan: #38bdf8;
+  --color-cyber-pink: #ec4899;
+  --color-cyber-green: #22c55e;
+
+  /* Sombras neón */
+  --shadow-neon: 0 0 20px rgb(168 85 247 / 0.5);
+  --shadow-neon-strong: 0 0 30px rgb(168 85 247 / 0.8);
+  --shadow-neon-pink: 0 0 20px rgb(236 72 153 / 0.5);
+  --shadow-neon-cyan: 0 0 20px rgb(56 189 248 / 0.5);
+
+  /* Animaciones */
+  --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@layer base {
+  body {
+    background: linear-gradient(to bottom right, var(--color-cyber-dark), var(--color-cyber-dark-alt), var(--color-cyber-dark));
+    color: white;
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .neon-text {
+    text-shadow: 0 0 10px rgb(168 85 247 / 0.8),
+                 0 0 20px rgb(168 85 247 / 0.5);
+  }
+
+  .neon-border {
+    border: 1px solid rgb(168 85 247 / 0.3);
+  }
+
+  .glass-effect {
+    background: rgb(26 11 46 / 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgb(255 255 255 / 0.1);
+  }
+
+  .bg-cyber-dark {
+    background-color: var(--color-cyber-dark);
+  }
+
+  .bg-cyber-dark-alt {
+    background-color: var(--color-cyber-dark-alt);
+  }
+
+  .bg-cyber-purple {
+    background-color: var(--color-cyber-purple);
+  }
+
+  .bg-cyber-cyan {
+    background-color: var(--color-cyber-cyan);
+  }
+
+  .bg-cyber-pink {
+    background-color: var(--color-cyber-pink);
+  }
+
+  .bg-cyber-green {
+    background-color: var(--color-cyber-green);
+  }
+
+  .text-cyber-purple {
+    color: var(--color-cyber-purple);
+  }
+
+  .text-cyber-cyan {
+    color: var(--color-cyber-cyan);
+  }
+
+  .text-cyber-pink {
+    color: var(--color-cyber-pink);
+  }
+
+  .text-cyber-green {
+    color: var(--color-cyber-green);
+  }
+
+  .border-cyber-purple {
+    border-color: var(--color-cyber-purple);
+  }
+
+  .border-cyber-cyan {
+    border-color: var(--color-cyber-cyan);
+  }
+
+  .border-cyber-pink {
+    border-color: var(--color-cyber-pink);
+  }
+
+  .from-cyber-dark {
+    --tw-gradient-from: var(--color-cyber-dark);
+  }
+
+  .to-cyber-dark-alt {
+    --tw-gradient-to: var(--color-cyber-dark-alt);
+  }
+
+  .from-cyber-purple {
+    --tw-gradient-from: var(--color-cyber-purple);
+  }
+
+  .to-cyber-pink {
+    --tw-gradient-to: var(--color-cyber-pink);
+  }
+
+  .shadow-neon {
+    box-shadow: var(--shadow-neon);
+  }
+
+  .shadow-neon-strong {
+    box-shadow: var(--shadow-neon-strong);
+  }
+
+  .shadow-neon-pink {
+    box-shadow: var(--shadow-neon-pink);
+  }
+
+  .shadow-neon-cyan {
+    box-shadow: var(--shadow-neon-cyan);
+  }
+
+  .animate-pulse-glow {
+    animation: var(--animate-pulse-glow);
+  }
+}

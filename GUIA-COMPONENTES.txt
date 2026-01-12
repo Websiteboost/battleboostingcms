@@ -1,0 +1,838 @@
+================================================================================
+                    GUÍA COMPLETA DE COMPONENTES DE PRECIO
+                         Sistema de Configuración de Servicios
+================================================================================
+
+ÍNDICE
+------
+1. INTRODUCCIÓN
+2. TIPOS DE COMPONENTES DISPONIBLES
+3. ESTRUCTURA DE LA BASE DE DATOS
+4. EJEMPLOS DE CONFIGURACIÓN POR COMPLEJIDAD
+5. GUÍA DE IMPLEMENTACIÓN PASO A PASO
+6. CASOS DE USO Y MEJORES PRÁCTICAS
+
+
+================================================================================
+1. INTRODUCCIÓN
+================================================================================
+
+El sistema de precios de BattleBoost es completamente modular y flexible, permitiendo
+crear servicios simples o complejos mediante la combinación de diferentes componentes
+de precio almacenados en formato JSONB en la base de datos.
+
+FILOSOFÍA DEL SISTEMA:
+- Cada servicio puede tener MÚLTIPLES componentes de precio
+- Los componentes son independientes y se suman al total
+- La configuración se almacena en la tabla 'service_prices' como JSONB
+- Cada tipo de componente tiene su propio tipo y estructura
+
+COMPONENTES PRINCIPALES:
+✓ IncrementalBar (BAR) - Rango de valores deslizante
+✓ BoxPrice (BOX) - Cards seleccionables con valores
+✓ CustomSelector (SELECTORS) - Menús desplegables
+✓ CheckGroup (ADDITIONAL) - Checkboxes de servicios adicionales
+✓ CustomPrice (CUSTOM) - Input numérico con presets
+
+
+================================================================================
+2. TIPOS DE COMPONENTES DISPONIBLES
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2.1 INCREMENTAL BAR (type: "bar")                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+  Barra deslizante de doble control para seleccionar un rango de valores.
+  Ideal para niveles, ratings, cantidades progresivas.
+
+COMPONENTE REACT:
+  IncrementalBar.tsx
+
+ESTRUCTURA JSONB:
+  {
+    "initValue": number,    // Valor inicial del rango
+    "finalValue": number,   // Valor final del rango
+    "step": number,         // Incremento entre valores
+    "label": string         // Etiqueta descriptiva (opcional)
+  }
+
+CÁLCULO DE PRECIO:
+  El precio se calcula según el número de "steps" en el rango seleccionado:
+  numSteps = (valorMaximo - valorMinimo) / step
+  precio = numSteps * step
+
+CARACTERÍSTICAS:
+  • Dos controles deslizantes (mínimo y máximo)
+  • Visualización en tiempo real de los valores seleccionados
+  • Indicadores visuales con colores neón (rosa para min, azul para max)
+  • Soporte para touch y mouse
+  • Animaciones suaves al arrastrar
+
+EJEMPLOS DE USO:
+  - Subida de nivel (1-50, 1-100, etc.)
+  - Rating competitivo (MMR 500-2000)
+  - Item Level de equipo (100-300)
+  - Nivel de dificultad Mythic+ (5-20)
+  - Cantidad de achievements (10-100)
+
+EJEMPLO EN BASE DE DATOS:
+  INSERT INTO service_prices (service_id, type, config) VALUES 
+  ('pl-1', 'bar', '{"initValue":1,"finalValue":50,"step":1,"label":"Select Level"}'::jsonb);
+
+  INSERT INTO service_prices (service_id, type, config) VALUES 
+  ('rb-1', 'bar', '{"initValue":500,"finalValue":2000,"step":100,"label":"Select Rating (MMR)"}'::jsonb);
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2.2 BOX PRICE (type: "box")                                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+  Cards de valor seleccionables individualmente (selección múltiple).
+  El usuario puede elegir varios valores y se suman todos al precio final.
+  Ideal para paquetes, tiers, categorías de contenido.
+
+COMPONENTE REACT:
+  BoxPrice.tsx
+
+ESTRUCTURA JSONB:
+  {
+    "options": [
+      {
+        "label": string,    // Texto mostrado (ej: "Basic", "Gold Tier")
+        "value": number     // Valor en USD que suma al total
+      },
+      ...
+    ]
+  }
+
+CÁLCULO DE PRECIO:
+  Se suman TODOS los valores de las opciones seleccionadas.
+  Si seleccionas 3 boxes, se suman los 3 valores.
+
+CARACTERÍSTICAS:
+  • Selección múltiple (toggle on/off)
+  • Indicador visual con checkmark cuando está seleccionado
+  • Efecto glow en cards seleccionadas (verde neón)
+  • Contador de items seleccionados
+  • Total parcial mostrado en tiempo real
+  • Grid responsivo que se adapta al contenido
+
+EJEMPLOS DE USO:
+  - Tiers de servicio (Basic $10, Standard $20, Premium $45)
+  - Rangos competitivos (Bronze $15, Silver $25, Gold $40)
+  - Rarezas de items (Common $20, Rare $35, Legendary $70)
+  - Paquetes de contenido (Starter $5, Pro $50, Master $75)
+  - Precios predefinidos ($15, $30, $50, $75)
+
+EJEMPLO EN BASE DE DATOS:
+  INSERT INTO service_prices (service_id, type, config) VALUES 
+  ('pl-2', 'box', '{"options":[
+    {"label":"Basic","value":10},
+    {"label":"Standard","value":20},
+    {"label":"Advanced","value":30},
+    {"label":"Premium","value":45},
+    {"label":"Elite","value":60},
+    {"label":"Ultimate","value":80}
+  ]}'::jsonb);
+
+  INSERT INTO service_prices (service_id, type, config) VALUES 
+  ('gf-2', 'box', '{"options":[
+    {"label":"Common","value":20},
+    {"label":"Rare","value":35},
+    {"label":"Epic","value":50},
+    {"label":"Legendary","value":70},
+    {"label":"Mythic","value":100}
+  ]}'::jsonb);
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2.3 CUSTOM SELECTORS (type: "selectors")                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+  Menús desplegables (select/dropdown) para elegir opciones categorizadas.
+  Puedes tener MÚLTIPLES selectores, cada uno con su pregunta/título.
+  Ideal para opciones categorizadas, configuraciones específicas.
+
+COMPONENTE REACT:
+  CustomSelector.tsx
+
+ESTRUCTURA JSONB:
+  {
+    "Título del Selector 1": [
+      {
+        "label": string,    // Opción mostrada
+        "value": number     // Valor que suma al total
+      },
+      ...
+    ],
+    "Título del Selector 2": [
+      {
+        "label": string,
+        "value": number
+      },
+      ...
+    ]
+  }
+
+CÁLCULO DE PRECIO:
+  Se suma el valor de la opción seleccionada en cada selector.
+  Si tienes 3 selectores, se suman los 3 valores seleccionados.
+
+CARACTERÍSTICAS:
+  • Cada selector tiene su propio título/pregunta
+  • Dropdown nativo estilizado con tema cyberpunk
+  • Opción por defecto "Choose..."
+  • Muestra el precio adicional junto a cada opción
+  • Múltiples selectores independientes
+  • Cada uno puede tener diferentes opciones
+
+EJEMPLOS DE USO:
+  - Número de personajes (1 char = $0, 2 chars = $90, 5 chars = $375)
+  - Dificultad (Beginner = $0, Intermediate = $25, Advanced = $50)
+  - Tipo de arena (2v2 = $0, 3v3 = $35, 5v5 = $45)
+  - Tamaño de grupo (10 players = $0, 20 players = $80, 25 players = $120)
+  - Servidor/Región
+  - Modo de juego
+
+EJEMPLO EN BASE DE DATOS:
+  -- Servicio con 1 selector
+  INSERT INTO service_prices (service_id, type, config) VALUES 
+  ('dc-1', 'selectors', '{
+    "Choose number of characters": [
+      {"label":"1 Character","value":0},
+      {"label":"2 Characters","value":90},
+      {"label":"5 Characters","value":375},
+      {"label":"6 Characters","value":470},
+      {"label":"12 Characters","value":1070}
+    ]
+  }'::jsonb);
+
+  -- Servicio con 2 selectores
+  INSERT INTO service_prices (service_id, type, config) VALUES 
+  ('pvp-2', 'selectors', '{
+    "Select Difficulty": [
+      {"label":"Beginner","value":0},
+      {"label":"Intermediate","value":25},
+      {"label":"Advanced","value":50},
+      {"label":"Expert","value":85},
+      {"label":"Master","value":120}
+    ],
+    "Choose Arena Type": [
+      {"label":"2v2 Arena","value":0},
+      {"label":"3v3 Arena","value":35},
+      {"label":"5v5 Battleground","value":45}
+    ]
+  }'::jsonb);
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2.4 CHECK GROUP - ADDITIONAL SERVICES (type: "additional")                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+  Checkboxes para servicios adicionales opcionales.
+  El usuario puede seleccionar múltiples opciones que se suman al total.
+  Ideal para extras, mejoras, servicios premium adicionales.
+
+COMPONENTE REACT:
+  CheckGroup.tsx
+
+ESTRUCTURA JSONB:
+  {
+    "addOption1": {
+      "type": "checkbox",    // Siempre "checkbox"
+      "value": number,       // Precio del extra
+      "label": string        // Descripción del servicio adicional
+    },
+    "addOption2": {
+      "type": "checkbox",
+      "value": number,
+      "label": string
+    },
+    ...
+  }
+
+CÁLCULO DE PRECIO:
+  Se suman TODOS los valores de los checkboxes marcados.
+
+CARACTERÍSTICAS:
+  • Checkboxes estilizados con tema cyberpunk
+  • Badge de precio a la derecha de cada opción
+  • Cambio de color cuando está seleccionado (púrpura → verde)
+  • Efecto glow en elementos seleccionados
+  • Contador de servicios adicionales seleccionados
+  • Tooltip informativo al seleccionar
+
+EJEMPLOS DE USO:
+  - Priority Queue (+$10)
+  - Express Boost 12h (+$15)
+  - Stream Service (+$8)
+  - Duo Queue (+$20)
+  - Specific Champion/Character (+$12)
+  - Best in Slot Items (+$25)
+  - Enchant All Items (+$15)
+  - Timed Run Guarantee (+$30)
+  - Rare Achievements (+$25)
+
+EJEMPLO EN BASE DE DATOS:
+  INSERT INTO service_prices (service_id, type, config) VALUES 
+  ('pl-1', 'additional', '{
+    "addOption1": {"type":"checkbox","value":10,"label":"Priority Queue"},
+    "addOption2": {"type":"checkbox","value":15,"label":"Express Boost (12h)"},
+    "addOption3": {"type":"checkbox","value":8,"label":"Stream Service"}
+  }'::jsonb);
+
+  INSERT INTO service_prices (service_id, type, config) VALUES 
+  ('gf-1', 'additional', '{
+    "addOption1": {"type":"checkbox","value":25,"label":"Best in Slot Items"},
+    "addOption2": {"type":"checkbox","value":15,"label":"Enchant All Items"},
+    "addOption3": {"type":"checkbox","value":10,"label":"Socket Gems"}
+  }'::jsonb);
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2.5 CUSTOM PRICE INPUT (type: "custom")                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+  Input de precio personalizado con botones preset opcionales.
+  El usuario puede elegir un preset o escribir su propio monto.
+  Ideal para servicios flexibles, donaciones, cantidades variables.
+
+COMPONENTE REACT:
+  Parte de PaymentSidebar.tsx
+
+ESTRUCTURA JSONB:
+  {
+    "label": string,           // Título del input
+    "presets": [number, ...]   // Valores preset opcionales
+  }
+
+CÁLCULO DE PRECIO:
+  Se usa directamente el valor ingresado o el preset seleccionado.
+
+CARACTERÍSTICAS:
+  • Input numérico con símbolo $ a la izquierda
+  • Botones preset opcionales (grid de 4 columnas)
+  • Solo acepta números enteros
+  • Selección exclusiva (input o preset, no ambos)
+  • Validación automática de entrada
+
+EJEMPLOS DE USO:
+  - Cantidad de dungeons (presets: 5, 10, 15, 25)
+  - Sesiones de entrenamiento (presets: 10, 25, 40, 60)
+  - Coaching avanzado (presets: 30, 60, 90, 120)
+  - Raid runs (presets: 20, 40, 60, 80)
+  - Monto personalizado (presets: 20, 35, 50, 75)
+
+EJEMPLO EN BASE DE DATOS:
+  INSERT INTO service_prices (service_id, type, config) VALUES 
+  ('dc-1', 'custom', '{"label":"Select Amount","presets":[5,10,15,25]}'::jsonb);
+
+  INSERT INTO service_prices (service_id, type, config) VALUES 
+  ('pvp-2', 'custom', '{"label":"Advanced Coaching","presets":[30,60,90,120]}'::jsonb);
+
+
+================================================================================
+3. ESTRUCTURA DE LA BASE DE DATOS
+================================================================================
+
+TABLA: service_prices
+---------------------
+id              UUID PRIMARY KEY
+service_id      VARCHAR(50) FOREIGN KEY → services(id)
+type            VARCHAR(50) CHECK (type IN ('bar','box','custom','selectors','additional'))
+config          JSONB
+created_at      TIMESTAMP
+
+ÍNDICES IMPORTANTES:
+- idx_service_prices_service_id (buscar por servicio)
+- idx_service_prices_type (filtrar por tipo)
+- idx_service_prices_config (búsquedas en JSONB con GIN)
+
+RELACIÓN CON SERVICIOS:
+Un servicio (service) puede tener MÚLTIPLES configuraciones de precio.
+service_prices.service_id → services.id (relación 1:N)
+
+EJEMPLO DE CONSULTA:
+SELECT * FROM service_prices 
+WHERE service_id = 'pl-1' 
+ORDER BY type;
+
+Resultado:
+- type: 'bar' → Barra de niveles
+- type: 'additional' → 3 checkboxes de extras
+
+
+================================================================================
+4. EJEMPLOS DE CONFIGURACIÓN POR COMPLEJIDAD
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4.1 SERVICIO SIMPLE (1-2 componentes)                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+EJEMPLO: Character Customization Basic (cc-1)
+COMPONENTES: 1 custom price input
+
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('cc-1', 'custom', '{"label":"Select Price","presets":[5,10,15,20]}'::jsonb);
+
+USO:
+- El usuario elige entre $5, $10, $15, $20 o escribe su monto
+- Total = monto seleccionado
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4.2 SERVICIO MODERADO (2-3 componentes)                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+EJEMPLO: Level 1-50 Express (pl-1)
+COMPONENTES: 1 bar + 1 additional
+
+-- Barra de nivel 1-50
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('pl-1', 'bar', '{"initValue":1,"finalValue":50,"step":1,"label":"Select Level"}'::jsonb);
+
+-- Servicios adicionales
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('pl-1', 'additional', '{
+  "addOption1": {"type":"checkbox","value":10,"label":"Priority Queue"},
+  "addOption2": {"type":"checkbox","value":15,"label":"Express Boost (12h)"},
+  "addOption3": {"type":"checkbox","value":8,"label":"Stream Service"}
+}'::jsonb);
+
+USO:
+- Seleccionar rango de niveles (ej: nivel 10 → 35 = 25 steps)
+- Opcionalmente marcar Priority Queue (+$10)
+- Opcionalmente marcar Express Boost (+$15)
+- Total = (25 × $1) + $10 + $15 = $50
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4.3 SERVICIO COMPLEJO (4-5 componentes)                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+EJEMPLO: 100% Achievement Completion (ah-2)
+COMPONENTES: 1 bar + 1 box + 1 additional
+
+-- Barra de cantidad de achievements
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('ah-2', 'bar', '{"initValue":10,"finalValue":100,"step":5,"label":"Select Achievement Count"}'::jsonb);
+
+-- Boxes de precios por paquete
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('ah-2', 'box', '{
+  "options":[
+    {"label":"$15","value":15},
+    {"label":"$30","value":30},
+    {"label":"$50","value":50},
+    {"label":"$75","value":75}
+  ]
+}'::jsonb);
+
+-- Extras especiales
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('ah-2', 'additional', '{
+  "addOption1": {"type":"checkbox","value":25,"label":"Rare Achievements"},
+  "addOption2": {"type":"checkbox","value":15,"label":"Secret Achievements"}
+}'::jsonb);
+
+USO:
+- Seleccionar rango de achievements (ej: 20 → 50 = 6 steps × $5 = $30)
+- Seleccionar box de $30
+- Marcar Rare Achievements (+$25)
+- Total = $30 + $30 + $25 = $85
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4.4 SERVICIO MUY COMPLEJO (5+ componentes)                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+EJEMPLO: Arena Mastery Training (pvp-2)
+COMPONENTES: 1 custom + 2 selectors (múltiples)
+
+-- Input de precio personalizado
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('pvp-2', 'custom', '{"label":"Advanced Coaching","presets":[30,60,90,120]}'::jsonb);
+
+-- Dos selectores independientes
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('pvp-2', 'selectors', '{
+  "Select Difficulty": [
+    {"label":"Beginner","value":0},
+    {"label":"Intermediate","value":25},
+    {"label":"Advanced","value":50},
+    {"label":"Expert","value":85},
+    {"label":"Master","value":120}
+  ],
+  "Choose Arena Type": [
+    {"label":"2v2 Arena","value":0},
+    {"label":"3v3 Arena","value":35},
+    {"label":"5v5 Battleground","value":45}
+  ]
+}'::jsonb);
+
+USO:
+- Escribir $90 de coaching personalizado
+- Seleccionar "Advanced" difficulty (+$50)
+- Seleccionar "3v3 Arena" (+$35)
+- Total = $90 + $50 + $35 = $175
+
+OTRO EJEMPLO: Dungeon Carry (dc-1)
+COMPONENTES: 1 custom + 1 selector
+
+-- Precio base personalizado
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('dc-1', 'custom', '{"label":"Select Amount","presets":[5,10,15,25]}'::jsonb);
+
+-- Selector de personajes
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('dc-1', 'selectors', '{
+  "Choose number of characters": [
+    {"label":"1 Character","value":0},
+    {"label":"2 Characters","value":90},
+    {"label":"5 Characters","value":375},
+    {"label":"6 Characters","value":470},
+    {"label":"12 Characters","value":1070}
+  ]
+}'::jsonb);
+
+USO:
+- Seleccionar preset $15
+- Seleccionar "5 Characters" (+$375)
+- Total = $15 + $375 = $390
+
+
+================================================================================
+5. GUÍA DE IMPLEMENTACIÓN PASO A PASO
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PASO 1: Crear el Servicio Base                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+INSERT INTO services (id, title, category_id, price, image, description) VALUES 
+('nuevo-servicio', 
+ 'Nombre del Servicio', 
+ 'power-leveling',
+ 25.00,
+ '/images/services/nuevo-servicio.jpg',
+ ARRAY[
+   'Característica 1',
+   'Característica 2',
+   'Característica 3'
+ ]);
+
+NOTA: El campo 'price' es el precio BASE. Se usa solo si NO hay componentes
+      de precio dinámico. Si agregas componentes, este valor se ignora.
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PASO 2: Asociar Servicio con Juegos                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+INSERT INTO service_games (service_id, game_id) VALUES 
+('nuevo-servicio', 'game-1'),
+('nuevo-servicio', 'game-3');
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PASO 3: Agregar Componentes de Precio                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+DECISIÓN: ¿Qué componentes necesitas?
+- ¿Rango de valores? → type: 'bar'
+- ¿Selección múltiple de paquetes? → type: 'box'
+- ¿Opciones categorizadas? → type: 'selectors'
+- ¿Extras opcionales? → type: 'additional'
+- ¿Monto personalizado? → type: 'custom'
+
+EJEMPLO: Agregar todos los tipos
+
+-- 1. Barra de rango
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('nuevo-servicio', 'bar', '{
+  "initValue": 1,
+  "finalValue": 100,
+  "step": 5,
+  "label": "Select Your Level Range"
+}'::jsonb);
+
+-- 2. Boxes de paquetes
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('nuevo-servicio', 'box', '{
+  "options": [
+    {"label":"Starter Pack","value":10},
+    {"label":"Pro Pack","value":25},
+    {"label":"Ultimate Pack","value":50}
+  ]
+}'::jsonb);
+
+-- 3. Selector de opciones
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('nuevo-servicio', 'selectors', '{
+  "Choose Server": [
+    {"label":"NA Server","value":0},
+    {"label":"EU Server","value":10},
+    {"label":"Asia Server","value":15}
+  ],
+  "Select Mode": [
+    {"label":"Normal","value":0},
+    {"label":"Heroic","value":20},
+    {"label":"Mythic","value":40}
+  ]
+}'::jsonb);
+
+-- 4. Servicios adicionales
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('nuevo-servicio', 'additional', '{
+  "addOption1": {"type":"checkbox","value":15,"label":"VIP Support 24/7"},
+  "addOption2": {"type":"checkbox","value":10,"label":"Progress Screenshots"}
+}'::jsonb);
+
+-- 5. Input personalizado (opcional)
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('nuevo-servicio', 'custom', '{
+  "label": "Custom Amount",
+  "presets": [20, 40, 60, 100]
+}'::jsonb);
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PASO 4: Verificar la Configuración                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+-- Ver todos los componentes del servicio
+SELECT type, config 
+FROM service_prices 
+WHERE service_id = 'nuevo-servicio'
+ORDER BY type;
+
+-- Ver servicio completo con componentes
+SELECT 
+  s.id,
+  s.title,
+  s.price as base_price,
+  json_agg(json_build_object('type', sp.type, 'config', sp.config)) as price_components
+FROM services s
+LEFT JOIN service_prices sp ON s.id = sp.service_id
+WHERE s.id = 'nuevo-servicio'
+GROUP BY s.id, s.title, s.price;
+
+
+================================================================================
+6. CASOS DE USO Y MEJORES PRÁCTICAS
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 6.1 SERVICIOS DE SUBIDA DE NIVEL (LEVELING)                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+COMPONENTES RECOMENDADOS:
+✓ BAR - Para rango de niveles (1-50, 1-100, etc.)
+✓ ADDITIONAL - Para prioridad, velocidad, stream
+
+EJEMPLO TÍPICO:
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('leveling-service', 'bar', '{"initValue":1,"finalValue":80,"step":1,"label":"Target Level"}'::jsonb),
+('leveling-service', 'additional', '{
+  "addOption1": {"type":"checkbox","value":15,"label":"Priority Queue"},
+  "addOption2": {"type":"checkbox","value":20,"label":"12h Express"},
+  "addOption3": {"type":"checkbox","value":10,"label":"Live Stream"}
+}'::jsonb);
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 6.2 SERVICIOS DE RANKED/COMPETITIVO                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+COMPONENTES RECOMENDADOS:
+✓ BAR - Para rating/MMR (500-3000)
+✓ BOX - Para tiers/divisiones (Bronze, Silver, Gold)
+✓ ADDITIONAL - Para duo queue, champions específicos
+
+EJEMPLO TÍPICO:
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('ranked-boost', 'bar', '{"initValue":500,"finalValue":3000,"step":100,"label":"Target Rating"}'::jsonb),
+('ranked-boost', 'box', '{
+  "options":[
+    {"label":"Bronze→Silver","value":20},
+    {"label":"Silver→Gold","value":35},
+    {"label":"Gold→Platinum","value":55},
+    {"label":"Platinum→Diamond","value":85}
+  ]
+}'::jsonb),
+('ranked-boost', 'additional', '{
+  "addOption1": {"type":"checkbox","value":25,"label":"Duo Queue"},
+  "addOption2": {"type":"checkbox","value":15,"label":"Specific Role"}
+}'::jsonb);
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 6.3 SERVICIOS DE DUNGEONS/RAIDS                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+COMPONENTES RECOMENDADOS:
+✓ CUSTOM - Cantidad de runs
+✓ SELECTORS - Número de personajes, dificultad
+✓ ADDITIONAL - Loot priority, timed runs
+
+EJEMPLO TÍPICO:
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('dungeon-runs', 'custom', '{"label":"Number of Runs","presets":[5,10,15,25]}'::jsonb),
+('dungeon-runs', 'selectors', '{
+  "Difficulty": [
+    {"label":"Normal","value":0},
+    {"label":"Heroic","value":10},
+    {"label":"Mythic","value":25}
+  ],
+  "Number of Characters": [
+    {"label":"1 Character","value":0},
+    {"label":"2 Characters","value":50},
+    {"label":"5 Characters","value":200}
+  ]
+}'::jsonb),
+('dungeon-runs', 'additional', '{
+  "addOption1": {"type":"checkbox","value":30,"label":"Loot Priority"},
+  "addOption2": {"type":"checkbox","value":25,"label":"Timed Run"}
+}'::jsonb);
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 6.4 SERVICIOS DE ACHIEVEMENTS/COLECCIONABLES                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+COMPONENTES RECOMENDADOS:
+✓ BAR - Cantidad de achievements (10-100)
+✓ BOX - Paquetes de contenido
+✓ ADDITIONAL - Raros, secretos, legacy
+
+EJEMPLO TÍPICO:
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('achievements', 'bar', '{"initValue":5,"finalValue":100,"step":5,"label":"Number of Achievements"}'::jsonb),
+('achievements', 'box', '{
+  "options":[
+    {"label":"Common Pack","value":15},
+    {"label":"Rare Pack","value":30},
+    {"label":"Epic Pack","value":50},
+    {"label":"Legendary Pack","value":80}
+  ]
+}'::jsonb),
+('achievements', 'additional', '{
+  "addOption1": {"type":"checkbox","value":35,"label":"Rare Achievements"},
+  "addOption2": {"type":"checkbox","value":25,"label":"Secret Achievements"},
+  "addOption3": {"type":"checkbox","value":40,"label":"Legacy Content"}
+}'::jsonb);
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 6.5 SERVICIOS DE COACHING/ENTRENAMIENTO                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+COMPONENTES RECOMENDADOS:
+✓ CUSTOM - Horas/sesiones de coaching
+✓ SELECTORS - Nivel de habilidad, especialización
+
+EJEMPLO TÍPICO:
+INSERT INTO service_prices (service_id, type, config) VALUES 
+('coaching', 'custom', '{"label":"Coaching Hours","presets":[10,25,50,100]}'::jsonb),
+('coaching', 'selectors', '{
+  "Skill Level": [
+    {"label":"Beginner","value":0},
+    {"label":"Intermediate","value":20},
+    {"label":"Advanced","value":45},
+    {"label":"Expert","value":80}
+  ],
+  "Focus Area": [
+    {"label":"General Gameplay","value":0},
+    {"label":"Specific Role","value":15},
+    {"label":"Competitive Play","value":30}
+  ]
+}'::jsonb);
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ MEJORES PRÁCTICAS GENERALES                                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+1. ORDEN DE COMPONENTES
+   Aparecen en la UI en el orden que defines en la base de datos.
+   Orden recomendado:
+   1) BAR (configuración principal)
+   2) BOX (paquetes/tiers)
+   3) CUSTOM (input personalizado)
+   4) SELECTORS (opciones categorizadas)
+   5) ADDITIONAL (extras al final)
+
+2. NOMENCLATURA
+   - Labels claros y descriptivos
+   - Usa verbos de acción: "Select", "Choose", "Enter"
+   - Especifica unidades cuando sea relevante: "Level", "Rating (MMR)", "Hours"
+
+3. VALORES Y PRECIOS
+   - Usa step lógicos en BAR (1 para niveles, 10/100 para ratings)
+   - Precio $0 en primera opción de SELECTORS para no forzar extras
+   - Presets en CUSTOM deben ser valores redondos y escalados
+
+4. COMBINACIONES LÓGICAS
+   ✓ BAR + ADDITIONAL (más común)
+   ✓ BOX + ADDITIONAL (paquetes con extras)
+   ✓ CUSTOM + SELECTORS (flexible con opciones)
+   ✗ Evita: BOX + CUSTOM en el mismo servicio (confuso)
+   ✗ Evita: Más de 3 SELECTORS (sobrecarga cognitiva)
+
+5. VALIDACIÓN
+   - Siempre testea con diferentes combinaciones
+   - Verifica que los cálculos sean correctos
+   - Asegúrate de que todos los campos JSONB sean válidos
+
+6. MANTENIMIENTO
+   - Documenta la lógica de precios en comentarios SQL
+   - Usa IDs descriptivos para servicios
+   - Mantén consistencia entre servicios similares
+
+
+================================================================================
+RESUMEN RÁPIDO
+================================================================================
+
+TIPOS DISPONIBLES:
+┌──────────────┬─────────────────────────────────────────────────────────────┐
+│ TYPE         │ DESCRIPCIÓN                                                 │
+├──────────────┼─────────────────────────────────────────────────────────────┤
+│ bar          │ Rango de valores deslizante (min-max)                      │
+│ box          │ Cards seleccionables múltiples con valores                 │
+│ selectors    │ Dropdowns categorizados (puedes tener varios)              │
+│ additional   │ Checkboxes de servicios extras                             │
+│ custom       │ Input numérico con presets opcionales                      │
+└──────────────┴─────────────────────────────────────────────────────────────┘
+
+CÁLCULO FINAL:
+Total = Σ(bar values) + Σ(box values) + Σ(selector values) + 
+        Σ(additional values) + custom value
+
+ARCHIVO DE SERVICIO:
+src/lib/services/services.ts - Consulta y mapeo desde DB
+
+COMPONENTES REACT:
+src/components/react/IncrementalBar.tsx
+src/components/react/BoxPrice.tsx
+src/components/react/CustomSelector.tsx
+src/components/react/CheckGroup.tsx
+src/components/react/PaymentSidebar.tsx (custom price input)
+
+================================================================================
+FIN DE LA GUÍA
+================================================================================
+
+Para más información, consulta:
+- database-seed-minimal.sql (ejemplos reales)
+- src/types/index.ts (definiciones TypeScript)
+- PaymentSidebar.tsx (implementación completa)
+
+Última actualización: Enero 2026
