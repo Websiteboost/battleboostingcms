@@ -74,7 +74,7 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
     if (initialData) {
       setFormData(initialData);
     }
-  }, [initialData?.title, initialData?.category_id, initialData?.price, initialData?.image]);
+  }, [initialData?.title, initialData?.category_id, initialData?.price, initialData?.image, initialData?.gameIds]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();

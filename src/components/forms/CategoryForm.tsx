@@ -32,7 +32,7 @@ export const CategoryForm = memo(({ initialData, games, onSubmit, onCancel, isEd
     if (initialData) {
       setFormData(initialData);
     }
-  }, [initialData?.name, initialData?.description, initialData?.icon]);
+  }, [initialData?.name, initialData?.description, initialData?.icon, initialData?.gameIds]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
