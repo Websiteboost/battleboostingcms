@@ -3,11 +3,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { getSiteConfig, updateSiteConfig } from '@/app/actions/siteConfig';
 import { resetDatabase } from '@/app/actions/resetDatabase';
+import { deleteAllImages } from '@/app/actions/images';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { Settings, AlertTriangle } from 'lucide-react';
+import { Settings, AlertTriangle, Trash2 } from 'lucide-react';
 
 interface SiteConfig {
   home_title: string;
@@ -32,6 +33,9 @@ export default function ConfigPage() {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [resetting, setResetting] = useState(false);
+  const [isDeleteImagesModalOpen, setIsDeleteImagesModalOpen] = useState(false);
+  const [deleteImagesConfirmText, setDeleteImagesConfirmText] = useState('');
+  const [deletingImages, setDeletingImages] = useState(false);
 
   useEffect(() => {
     loadConfig();
@@ -64,6 +68,25 @@ export default function ConfigPage() {
       alert('❌ ' + (result.error || 'Error al reiniciar la base de datos'));
     }
     setResetting(false);
+  };
+
+  const handleDeleteAllImages = async () => {
+    if (deleteImagesConfirmText !== 'DELETE ALL') {
+      alert('Debes escribir "DELETE ALL" para confirmar');
+      return;
+    }
+
+    setDeletingImages(true);
+    const result = await deleteAllImages();
+    
+    if (result.success) {
+      alert('✅ ' + result.message);
+      setIsDeleteImagesModalOpen(false);
+      setDeleteImagesConfirmText('');
+    } else {
+      alert('❌ ' + (result.error || 'Error al eliminar las imágenes'));
+    }
+    setDeletingImages(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -257,6 +280,24 @@ export default function ConfigPage() {
                 Reset Database
               </Button>
             </div>
+
+            <div className="p-4 bg-slate-800/50 rounded-lg border border-orange-500/30">
+              <h3 className="text-white font-semibold mb-2">Eliminar Todas las Imágenes</h3>
+              <p className="text-sm text-gray-300 mb-4">
+                Esta acción eliminará <strong className="text-orange-400">TODAS</strong> las imágenes del Blob Storage y limpiará las referencias en la base de datos.
+                <br />
+                <span className="text-orange-400">⚠️ Esta acción es irreversible.</span>
+              </p>
+              <Button 
+                type="button" 
+                variant="danger"
+                onClick={() => setIsDeleteImagesModalOpen(true)}
+                className="w-full sm:w-auto"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete All Images
+              </Button>
+            </div>
           </div>
         </Card>
 
@@ -322,6 +363,63 @@ export default function ConfigPage() {
               className="w-full sm:flex-1"
             >
               {resetting ? 'Reiniciando...' : 'Confirmar Reset'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Confirmación Delete All Images */}
+      <Modal
+        isOpen={isDeleteImagesModalOpen}
+        onClose={() => {
+          setIsDeleteImagesModalOpen(false);
+          setDeleteImagesConfirmText('');
+        }}
+        title="⚠️ Confirmar Eliminación de Todas las Imágenes"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-orange-950/30 border border-orange-500/50 rounded-lg">
+            <p className="text-white font-semibold mb-2">¡ADVERTENCIA!</p>
+            <ul className="text-sm text-gray-300 space-y-1 list-disc list-inside">
+              <li>Se eliminarán TODAS las imágenes del Blob Storage</li>
+              <li>Se limpiarán las referencias en juegos y servicios</li>
+              <li>Esta acción no se puede deshacer</li>
+            </ul>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Escribe <span className="text-orange-400 font-bold">DELETE ALL</span> para confirmar:
+            </label>
+            <Input
+              value={deleteImagesConfirmText}
+              onChange={(e) => setDeleteImagesConfirmText(e.target.value)}
+              placeholder="Escribe DELETE ALL en mayúsculas"
+              className="font-mono"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setIsDeleteImagesModalOpen(false);
+                setDeleteImagesConfirmText('');
+              }}
+              disabled={deletingImages}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={handleDeleteAllImages}
+              disabled={deleteImagesConfirmText !== 'DELETE ALL' || deletingImages}
+              className="w-full sm:flex-1"
+            >
+              {deletingImages ? 'Eliminando...' : 'Confirmar Eliminación'}
             </Button>
           </div>
         </div>

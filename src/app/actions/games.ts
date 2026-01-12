@@ -4,8 +4,7 @@ import { sql } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
-import type { Game } from "@/types";
+import { z } from "zod";import { del } from '@vercel/blob';import type { Game } from "@/types";
 
 const gameSchema = z.object({
   id: z.string().optional(),
@@ -92,7 +91,22 @@ export async function deleteGame(id: string) {
   }
 
   try {
+    // Obtener la URL de la imagen antes de eliminar
+    const game = await sql`SELECT image FROM games WHERE id = ${id}`;
+    
+    // Eliminar el juego de la base de datos
     await sql`DELETE FROM games WHERE id = ${id}`;
+    
+    // Eliminar la imagen del blob storage si existe
+    if (game[0]?.image && game[0].image.includes('blob.vercel-storage.com')) {
+      try {
+        await del(game[0].image);
+      } catch (error) {
+        console.error('Error deleting image from blob:', error);
+        // No fallar si no se puede eliminar la imagen
+      }
+    }
+    
     revalidatePath('/dashboard/games');
     return { success: true, message: 'Juego eliminado exitosamente' };
   } catch (error) {

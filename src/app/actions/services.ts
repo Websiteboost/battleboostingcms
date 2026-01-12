@@ -8,6 +8,7 @@ import { z } from "zod";
 import type { Service } from "@/types";
 import { replaceServicePriceComponents } from "./servicePrices";
 import { replaceServiceGames } from "./serviceGames";
+import { del } from '@vercel/blob';
 
 const serviceSchema = z.object({
   id: z.string().optional(),
@@ -131,7 +132,22 @@ export async function deleteService(id: string) {
   }
 
   try {
+    // Obtener la URL de la imagen antes de eliminar
+    const service = await sql`SELECT image FROM services WHERE id = ${id}`;
+    
+    // Eliminar el servicio de la base de datos (cascade eliminará relations)
     await sql`DELETE FROM services WHERE id = ${id}`;
+    
+    // Eliminar la imagen del blob storage si existe
+    if (service[0]?.image && service[0].image.includes('blob.vercel-storage.com')) {
+      try {
+        await del(service[0].image);
+      } catch (error) {
+        console.error('Error deleting image from blob:', error);
+        // No fallar si no se puede eliminar la imagen
+      }
+    }
+    
     revalidatePath('/dashboard/services');
     return { success: true, message: 'Servicio eliminado exitosamente' };
   } catch (error) {
