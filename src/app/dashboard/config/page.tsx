@@ -11,22 +11,26 @@ import { Modal } from '@/components/ui/Modal';
 import { Settings, AlertTriangle, Trash2 } from 'lucide-react';
 
 interface SiteConfig {
+  logo_text: string;
   home_title: string;
   home_subtitle: string;
   home_categories: string[];
   accordion_title: string;
   footer_payment_title: string;
   footer_copyright: string;
+  disclaimer: string;
 }
 
 export default function ConfigPage() {
   const [config, setConfig] = useState<SiteConfig>({
+    logo_text: '',
     home_title: '',
     home_subtitle: '',
     home_categories: [''],
     accordion_title: '',
     footer_payment_title: '',
     footer_copyright: '',
+    disclaimer: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -156,6 +160,17 @@ export default function ConfigPage() {
 
           <div className="space-y-4">
             <Input
+              label="Texto del Logo"
+              value={config.logo_text}
+              onChange={(e) => setConfig({ ...config, logo_text: e.target.value })}
+              required
+              placeholder="BATTLE BOOSTING"
+            />
+            <p className="text-xs text-gray-400 -mt-2">
+              El texto se divide por espacios para crear líneas múltiples en el logo.
+            </p>
+
+            <Input
               label="Título Principal"
               value={config.home_title}
               onChange={(e) => setConfig({ ...config, home_title: e.target.value })}
@@ -252,6 +267,23 @@ export default function ConfigPage() {
               required
               placeholder="© 2025 BattleBoosting. All rights reserved."
             />
+
+            <div className="space-y-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-200">
+                Disclaimer
+              </label>
+              <textarea
+                value={config.disclaimer}
+                onChange={(e) => setConfig({ ...config, disclaimer: e.target.value })}
+                required
+                rows={4}
+                placeholder="All services are provided for entertainment purposes only..."
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-cyber-purple/50 focus:border-cyber-purple transition-all duration-300 resize-vertical"
+              />
+              <p className="text-xs text-gray-400">
+                Mensaje de liberación de responsabilidad que se muestra en el footer.
+              </p>
+            </div>
           </div>
         </Card>
 

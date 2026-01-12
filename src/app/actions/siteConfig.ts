@@ -7,12 +7,14 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 const siteConfigSchema = z.object({
+  logo_text: z.string().min(1, { message: "El texto del logo es requerido" }),
   home_title: z.string().min(1, { message: "El título es requerido" }),
   home_subtitle: z.string().min(1, { message: "El subtítulo es requerido" }),
   home_categories: z.array(z.string()).min(1, { message: "Debe haber al menos una categoría" }),
   accordion_title: z.string().min(1, { message: "El título del acordeón es requerido" }),
   footer_payment_title: z.string().min(1, { message: "El título de pago es requerido" }),
   footer_copyright: z.string().min(1, { message: "El copyright es requerido" }),
+  disclaimer: z.string().min(1, { message: "El disclaimer es requerido" }),
 });
 
 export async function getSiteConfig() {
@@ -38,21 +40,23 @@ export async function updateSiteConfig(data: z.infer<typeof siteConfigSchema>) {
     return { success: false, error: 'Datos inválidos' };
   }
 
-  const { home_title, home_subtitle, home_categories, accordion_title, footer_payment_title, footer_copyright } = validatedFields.data;
+  const { logo_text, home_title, home_subtitle, home_categories, accordion_title, footer_payment_title, footer_copyright, disclaimer } = validatedFields.data;
 
   try {
     // Usar UPSERT (INSERT ... ON CONFLICT)
     await sql`
-      INSERT INTO site_config (id, home_title, home_subtitle, home_categories, accordion_title, footer_payment_title, footer_copyright)
-      VALUES (1, ${home_title}, ${home_subtitle}, ${home_categories}, ${accordion_title}, ${footer_payment_title}, ${footer_copyright})
+      INSERT INTO site_config (id, logo_text, home_title, home_subtitle, home_categories, accordion_title, footer_payment_title, footer_copyright, disclaimer)
+      VALUES (1, ${logo_text}, ${home_title}, ${home_subtitle}, ${home_categories}, ${accordion_title}, ${footer_payment_title}, ${footer_copyright}, ${disclaimer})
       ON CONFLICT (id)
       DO UPDATE SET
+        logo_text = ${logo_text},
         home_title = ${home_title},
         home_subtitle = ${home_subtitle},
         home_categories = ${home_categories},
         accordion_title = ${accordion_title},
         footer_payment_title = ${footer_payment_title},
         footer_copyright = ${footer_copyright},
+        disclaimer = ${disclaimer},
         updated_at = CURRENT_TIMESTAMP
     `;
     
