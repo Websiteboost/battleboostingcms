@@ -1,8 +1,9 @@
 'use client';
 
 import { Sidebar } from '@/components/layout/Sidebar';
-import { Menu } from 'lucide-react';
+import { Menu, LogOut } from 'lucide-react';
 import { useState } from 'react';
+import { signOut } from 'next-auth/react';
 
 export default function DashboardLayout({
   children,
@@ -22,13 +23,21 @@ export default function DashboardLayout({
             <button
               onClick={() => setIsSidebarOpen(true)}
               className="text-gray-400 hover:text-white transition-colors p-2"
+              aria-label="Abrir menú"
             >
               <Menu size={24} />
             </button>
             <h1 className="text-lg font-bold bg-linear-to-r from-cyber-purple to-cyber-pink bg-clip-text text-transparent">
               BattleBoost
             </h1>
-            <div className="w-10" /> {/* Spacer para centrar */}
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="text-gray-400 hover:text-red-400 transition-colors p-2"
+              aria-label="Cerrar sesión"
+              title="Cerrar sesión"
+            >
+              <LogOut size={20} />
+            </button>
           </div>
         </header>
 
