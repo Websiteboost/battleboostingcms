@@ -12,7 +12,8 @@ import {
   LogOut,
   X,
   Settings,
-  HelpCircle
+  HelpCircle,
+  FileText
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 
@@ -22,6 +23,7 @@ const navItems = [
   { name: 'Categorías', href: '/dashboard/categories', icon: Folder },
   { name: 'Servicios', href: '/dashboard/services', icon: Package },
   { name: 'FAQ', href: '/dashboard/accordion', icon: HelpCircle },
+  { name: 'Políticas', href: '/dashboard/policies', icon: FileText },
   { name: 'Imágenes', href: '/dashboard/images', icon: Image },
   { name: 'Configuración', href: '/dashboard/config', icon: Settings },
 ];
