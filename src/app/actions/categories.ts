@@ -19,9 +19,9 @@ const categorySchema = z.object({
 export async function getCategories() {
   try {
     const result = await sql`
-      SELECT id, name, description, icon, created_at
+      SELECT id, name, description, icon, display_order, created_at
       FROM categories
-      ORDER BY name ASC
+      ORDER BY display_order ASC, name ASC
     `;
     return { success: true, data: result as Category[] };
   } catch (error) {
@@ -44,10 +44,16 @@ export async function createCategory(data: z.infer<typeof categorySchema>) {
   const { name, description, icon, gameIds } = validatedFields.data;
 
   try {
+    // Obtener el máximo display_order actual
+    const maxOrder = await sql`
+      SELECT COALESCE(MAX(display_order), 0) as max_order FROM categories
+    `;
+    const nextOrder = maxOrder[0].max_order + 1;
+
     // Crear la categoría
     const result = await sql`
-      INSERT INTO categories (name, description, icon)
-      VALUES (${name}, ${description}, ${icon})
+      INSERT INTO categories (name, description, icon, display_order)
+      VALUES (${name}, ${description}, ${icon}, ${nextOrder})
       RETURNING id
     `;
     
@@ -111,11 +117,65 @@ export async function deleteCategory(id: string) {
   }
 
   try {
+    // Obtener el orden del item a eliminar
+    const categoryToDelete = await sql`
+      SELECT display_order FROM categories WHERE id = ${id}
+    `;
+
+    if (categoryToDelete.length === 0) {
+      return { success: false, error: 'Categoría no encontrada' };
+    }
+
+    const deletedOrder = categoryToDelete[0].display_order;
+
+    // Eliminar la categoría
     await sql`DELETE FROM categories WHERE id = ${id}`;
+
+    // Ajustar el orden de las categorías posteriores
+    await sql`
+      UPDATE categories
+      SET display_order = display_order - 1
+      WHERE display_order > ${deletedOrder}
+    `;
+
     revalidatePath('/dashboard/categories');
     return { success: true, message: 'Categoría eliminada exitosamente' };
   } catch (error) {
     console.error('Error deleting category:', error);
     return { success: false, error: 'Error al eliminar la categoría' };
+  }
+}
+
+export async function reorderCategories(items: { id: string; display_order: number }[]) {
+  const session = await getServerSession(authOptions);
+  if (!session || (session.user as any).role !== 'admin') {
+    return { success: false, error: 'No autorizado' };
+  }
+
+  try {
+    // Actualizar el orden de todas las categorías en una transacción
+    // Primero establecemos todos a valores negativos temporales
+    for (let i = 0; i < items.length; i++) {
+      await sql`
+        UPDATE categories
+        SET display_order = ${-(i + 1)}
+        WHERE id = ${items[i].id}
+      `;
+    }
+
+    // Luego asignamos los valores correctos
+    for (const item of items) {
+      await sql`
+        UPDATE categories
+        SET display_order = ${item.display_order}
+        WHERE id = ${item.id}
+      `;
+    }
+
+    revalidatePath('/dashboard/categories');
+    return { success: true };
+  } catch (error) {
+    console.error('Error reordering categories:', error);
+    return { success: false, error: 'Error al reordenar categorías' };
   }
 }

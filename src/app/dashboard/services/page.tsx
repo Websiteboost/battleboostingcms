@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, memo } from 'react';
-import { getServices, deleteService, createService, updateService } from '@/app/actions/services';
+import { getServices, deleteService, createService, updateService, reorderServices } from '@/app/actions/services';
 import { getCategories } from '@/app/actions/categories';
 import { getGames } from '@/app/actions/games';
 import { getServicePriceComponents } from '@/app/actions/servicePrices';
@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { ServiceForm } from '@/components/forms/ServiceForm';
-import { Pencil, Trash2, Plus, Image as ImageIcon } from 'lucide-react';
+import { Pencil, Trash2, Plus, Image as ImageIcon, GripVertical } from 'lucide-react';
 import type { Service, Category, Game } from '@/types';
 import type { PriceComponent } from '@/types/priceComponents';
 import Image from 'next/image';
@@ -22,7 +22,14 @@ const ServiceCard = memo(({
   imageError,
   onImageError,
   onEdit, 
-  onDelete 
+  onDelete,
+  displayOrder,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  isDragOver
 }: { 
   service: Service;
   categoryName: string;
@@ -30,46 +37,70 @@ const ServiceCard = memo(({
   onImageError: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  displayOrder: number;
+  onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragLeave: () => void;
+  onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
+  isDragOver: boolean;
 }) => {
   return (
-    <Card className="overflow-hidden">
-      <div className="relative h-40 sm:h-48 bg-slate-800">
-        {!imageError && service.image ? (
-          <Image
-            src={service.image}
-            alt={service.title}
-            fill
-            className="object-cover"
-            onError={onImageError}
-            unoptimized
-            loading="eager"
-            priority
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <ImageIcon size={40} className="sm:w-12 sm:h-12 text-gray-600" />
+    <Card className={`overflow-hidden transition-all relative ${isDragOver ? 'border-cyber-purple border-2 scale-[1.02]' : ''}`}>
+      <div 
+        draggable
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+      >
+        {/* Badge de orden con drag handle */}
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-slate-900/90 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg">
+          <div title="Arrastra para reordenar">
+            <GripVertical className="w-4 h-4 text-gray-400 cursor-grab active:cursor-grabbing hover:text-cyber-purple transition-colors" />
           </div>
-        )}
-      </div>
-      <div className="p-3 sm:p-4">
-        <h3 className="text-base sm:text-lg font-bold mb-1 truncate">{service.title}</h3>
-        <p className="text-xs sm:text-sm text-gray-400 mb-2">{categoryName}</p>
-        <p className="text-lg font-bold text-cyber-purple mb-3">${service.price}</p>
-        <div className="flex gap-2">
-          <Button 
-            variant="secondary" 
-            className="flex-1"
-            onClick={onEdit}
-          >
-            <Pencil size={16} />
-          </Button>
-          <Button 
-            variant="danger" 
-            className="flex-1"
-            onClick={onDelete}
-          >
-            <Trash2 size={16} />
-          </Button>
+          <span className="text-xs font-semibold text-cyber-purple">#{displayOrder}</span>
+        </div>
+
+        <div className="relative h-40 sm:h-48 bg-slate-800">
+          {!imageError && service.image ? (
+            <Image
+              src={service.image}
+              alt={service.title}
+              fill
+              className="object-cover"
+              onError={onImageError}
+              unoptimized
+              loading="eager"
+              priority
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <ImageIcon size={40} className="sm:w-12 sm:h-12 text-gray-600" />
+            </div>
+          )}
+        </div>
+        <div className="p-3 sm:p-4">
+          <h3 className="text-base sm:text-lg font-bold mb-1 truncate">{service.title}</h3>
+          <p className="text-xs sm:text-sm text-gray-400 mb-2">{categoryName}</p>
+          <p className="text-lg font-bold text-cyber-purple mb-3">${service.price}</p>
+          <div className="flex gap-2">
+            <Button 
+              variant="secondary" 
+              className="flex-1"
+              onClick={onEdit}
+            >
+              <Pencil size={16} />
+            </Button>
+            <Button 
+              variant="danger" 
+              className="flex-1"
+              onClick={onDelete}
+            >
+              <Trash2 size={16} />
+            </Button>
+          </div>
         </div>
       </div>
     </Card>
@@ -86,6 +117,8 @@ export default function ServicesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [imageError, setImageError] = useState<Record<string, boolean>>({});
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -180,6 +213,68 @@ export default function ServicesPage() {
     setImageError(prev => ({ ...prev, [serviceId]: true }));
   }, []);
 
+  // Drag and Drop handlers
+  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.5';
+    }
+  }, []);
+
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '1';
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverIndex(null);
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newServices = [...services];
+    const [draggedService] = newServices.splice(draggedIndex, 1);
+    newServices.splice(dropIndex, 0, draggedService);
+
+    // Recalcular display_order para todos los servicios
+    const updatedServices = newServices.map((svc, idx) => ({
+      ...svc,
+      display_order: idx + 1
+    }));
+
+    const updates = updatedServices.map(svc => ({
+      id: svc.id,
+      display_order: svc.display_order
+    }));
+
+    setServices(updatedServices);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    const result = await reorderServices(updates);
+    if (!result.success) {
+      alert('Error al reordenar servicios');
+      await loadData();
+    }
+  }, [draggedIndex, services, loadData]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -215,15 +310,22 @@ export default function ServicesPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {services.map((service) => (
+          {services.map((service, index) => (
             <ServiceCard
               key={service.id}
               service={service}
               categoryName={getCategoryName(service.category_id)}
+              displayOrder={(service as any).display_order || index + 1}
               imageError={imageError[service.id] || false}
               onImageError={() => handleImageError(service.id)}
               onEdit={() => openEditModal(service)}
               onDelete={() => handleDelete(service.id, service.title)}
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragEnd={handleDragEnd}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, index)}
+              isDragOver={dragOverIndex === index}
             />
           ))}
         </div>

@@ -38,6 +38,25 @@ export async function createAccordionItem(data: z.infer<typeof accordionSchema>)
     // Generar ID único
     const id = `item-${Date.now()}`;
     
+    // Si el display_order ya existe, ajustar los demás items
+    const existingItems = await sql`
+      SELECT id, display_order 
+      FROM accordion_items 
+      WHERE display_order >= ${validated.display_order}
+      ORDER BY display_order ASC
+    `;
+
+    // Incrementar el orden de todos los items que están en o después de la posición deseada
+    if (existingItems.length > 0) {
+      for (const item of existingItems) {
+        await sql`
+          UPDATE accordion_items
+          SET display_order = display_order + 1
+          WHERE id = ${item.id}
+        `;
+      }
+    }
+    
     await sql`
       INSERT INTO accordion_items (id, title, content, display_order)
       VALUES (${id}, ${validated.title}, ${validated.content}, ${validated.display_order})
@@ -58,6 +77,42 @@ export async function updateAccordionItem(data: z.infer<typeof accordionSchema> 
     const { id, ...rest } = data;
     const validated = accordionSchema.parse(rest);
     
+    // Obtener el orden actual del item
+    const currentItem = await sql`
+      SELECT display_order 
+      FROM accordion_items 
+      WHERE id = ${id}
+    `;
+
+    if (currentItem.length === 0) {
+      return { success: false, error: 'Item no encontrado' };
+    }
+
+    const oldOrder = currentItem[0].display_order;
+    const newOrder = validated.display_order;
+
+    // Si el orden cambió, recalcular todos los órdenes afectados
+    if (oldOrder !== newOrder) {
+      if (newOrder > oldOrder) {
+        // Mover hacia abajo: decrementar los items entre oldOrder y newOrder
+        await sql`
+          UPDATE accordion_items
+          SET display_order = display_order - 1
+          WHERE display_order > ${oldOrder} AND display_order <= ${newOrder}
+          AND id != ${id}
+        `;
+      } else {
+        // Mover hacia arriba: incrementar los items entre newOrder y oldOrder
+        await sql`
+          UPDATE accordion_items
+          SET display_order = display_order + 1
+          WHERE display_order >= ${newOrder} AND display_order < ${oldOrder}
+          AND id != ${id}
+        `;
+      }
+    }
+
+    // Actualizar el item actual
     await sql`
       UPDATE accordion_items
       SET title = ${validated.title},
@@ -78,10 +133,32 @@ export async function updateAccordionItem(data: z.infer<typeof accordionSchema> 
 
 export async function deleteAccordionItem(id: string) {
   try {
+    // Obtener el orden del item a eliminar
+    const itemToDelete = await sql`
+      SELECT display_order 
+      FROM accordion_items 
+      WHERE id = ${id}
+    `;
+
+    if (itemToDelete.length === 0) {
+      return { success: false, error: 'Item no encontrado' };
+    }
+
+    const deletedOrder = itemToDelete[0].display_order;
+
+    // Eliminar el item
     await sql`
       DELETE FROM accordion_items
       WHERE id = ${id}
     `;
+
+    // Ajustar el orden de los items posteriores (decrementar en 1)
+    await sql`
+      UPDATE accordion_items
+      SET display_order = display_order - 1
+      WHERE display_order > ${deletedOrder}
+    `;
+
     return { success: true };
   } catch (error) {
     console.error('Error deleting accordion item:', error);
@@ -91,7 +168,17 @@ export async function deleteAccordionItem(id: string) {
 
 export async function reorderAccordionItems(items: { id: string; display_order: number }[]) {
   try {
-    // Actualizar el orden de todos los items
+    // Actualizar el orden de todos los items en una transacción
+    // Para evitar conflictos, primero establecemos todos a valores negativos temporales
+    for (let i = 0; i < items.length; i++) {
+      await sql`
+        UPDATE accordion_items
+        SET display_order = ${-(i + 1)}
+        WHERE id = ${items[i].id}
+      `;
+    }
+
+    // Luego asignamos los valores correctos
     for (const item of items) {
       await sql`
         UPDATE accordion_items

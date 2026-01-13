@@ -21,6 +21,8 @@ export default function AccordionPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<AccordionItem | null>(null);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -83,13 +85,18 @@ export default function AccordionPage() {
     // Intercambiar items
     [newItems[index], newItems[targetIndex]] = [newItems[targetIndex], newItems[index]];
     
-    // Actualizar display_order
-    const updates = newItems.map((item, idx) => ({
-      id: item.id,
+    // Actualizar display_order en cada item
+    const updatedItems = newItems.map((item, idx) => ({
+      ...item,
       display_order: idx + 1
     }));
 
-    setItems(newItems);
+    const updates = updatedItems.map(item => ({
+      id: item.id,
+      display_order: item.display_order
+    }));
+
+    setItems(updatedItems);
     
     const result = await reorderAccordionItems(updates);
     if (!result.success) {
@@ -97,6 +104,69 @@ export default function AccordionPage() {
       await loadData();
     }
   }, [items, loadData]);
+
+  // Drag and Drop handlers
+  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    // Añadir un estilo visual durante el drag
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.5';
+    }
+  }, []);
+
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '1';
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverIndex(null);
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newItems = [...items];
+    const [draggedItem] = newItems.splice(draggedIndex, 1);
+    newItems.splice(dropIndex, 0, draggedItem);
+
+    // Recalcular display_order para todos los items
+    const updatedItems = newItems.map((item, idx) => ({
+      ...item,
+      display_order: idx + 1
+    }));
+
+    const updates = updatedItems.map(item => ({
+      id: item.id,
+      display_order: item.display_order
+    }));
+
+    setItems(updatedItems);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    const result = await reorderAccordionItems(updates);
+    if (!result.success) {
+      alert('Error al reordenar items');
+      await loadData();
+    }
+  }, [draggedIndex, items, loadData]);
 
   const toggleExpanded = useCallback((id: string) => {
     setExpandedItem(prev => prev === id ? null : id);
@@ -148,11 +218,31 @@ export default function AccordionPage() {
       ) : (
         <div className="space-y-3">
           {items.map((item, index) => (
-            <Card key={item.id} className="p-4 hover:border-cyber-purple/50 transition-all">
-              <div className="flex items-start gap-3">
-                {/* Drag Handle & Order Controls */}
-                <div className="flex flex-col items-center gap-1 pt-1">
-                  <GripVertical className="w-5 h-5 text-gray-500" />
+            <Card 
+              key={item.id} 
+              className={`transition-all ${
+                dragOverIndex === index 
+                  ? 'border-cyber-purple border-2 scale-[1.02]' 
+                  : 'hover:border-cyber-purple/50'
+              }`}
+            >
+              <div 
+                className="p-4"
+                draggable
+                onDragStart={(e: React.DragEvent<HTMLDivElement>) => handleDragStart(e, index)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e: React.DragEvent<HTMLDivElement>) => handleDragOver(e, index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e: React.DragEvent<HTMLDivElement>) => handleDrop(e, index)}
+              >
+                <div className="flex items-start gap-3">
+                  {/* Drag Handle & Order Controls */}
+                  <div className="flex flex-col items-center gap-1 pt-1">
+                    <div title="Arrastra para reordenar">
+                      <GripVertical 
+                        className="w-5 h-5 text-gray-400 cursor-grab active:cursor-grabbing hover:text-cyber-purple transition-colors" 
+                      />
+                    </div>
                   <div className="flex flex-col gap-0.5">
                     <button
                       onClick={() => moveItem(index, 'up')}
@@ -215,6 +305,7 @@ export default function AccordionPage() {
                   </Button>
                 </div>
               </div>
+            </div>
             </Card>
           ))}
         </div>

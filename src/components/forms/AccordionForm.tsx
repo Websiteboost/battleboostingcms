@@ -105,7 +105,7 @@ export const AccordionForm = memo(function AccordionForm({
 
       <div>
         <label htmlFor="display_order" className="block text-sm font-medium text-white mb-2">
-          Orden de visualización <span className="text-cyber-purple">*</span>
+          Posición en la lista <span className="text-cyber-purple">*</span>
         </label>
         <input
           type="number"
@@ -113,12 +113,21 @@ export const AccordionForm = memo(function AccordionForm({
           value={formData.display_order}
           onChange={(e) => handleChange('display_order', parseInt(e.target.value) || 1)}
           min="1"
+          max={isEditing ? maxOrder : maxOrder + 1}
           className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-700 border border-cyber-purple/50 rounded-lg text-white focus:outline-none focus:border-cyber-purple focus:ring-1 focus:ring-cyber-purple transition-all text-sm sm:text-base"
           required
         />
         <p className="mt-1 text-xs text-gray-400">
-          {isEditing ? 'Orden actual en la lista' : `Siguiente disponible: ${maxOrder + 1}`}
+          {isEditing 
+            ? `Posición actual: ${initialData?.display_order}. Los demás items se ajustarán automáticamente.` 
+            : `Elige una posición del 1 al ${maxOrder + 1}. Nueva pregunta se agregará en posición ${maxOrder + 1} por defecto.`
+          }
         </p>
+        {isEditing && formData.display_order !== initialData?.display_order && (
+          <p className="mt-1 text-xs text-yellow-400">
+            ⚠️ Al cambiar la posición, todos los items afectados se reordenarán automáticamente
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 pt-2 sm:pt-4">

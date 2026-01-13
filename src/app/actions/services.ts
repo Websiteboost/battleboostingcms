@@ -31,7 +31,7 @@ export async function getServices() {
       SELECT s.*, c.name as category_name
       FROM services s
       LEFT JOIN categories c ON s.category_id = c.id
-      ORDER BY s.created_at DESC
+      ORDER BY s.display_order ASC, s.created_at DESC
     `;
     return { success: true, data: result as Service[] };
   } catch (error) {
@@ -54,10 +54,18 @@ export async function createService(data: z.infer<typeof serviceSchema>) {
   const { title, category_id, price, image, description, priceComponents, gameIds } = validatedFields.data;
 
   try {
+    // Obtener el máximo display_order actual para esta categoría
+    const maxOrder = await sql`
+      SELECT COALESCE(MAX(display_order), 0) as max_order 
+      FROM services 
+      WHERE category_id = ${category_id}
+    `;
+    const nextOrder = maxOrder[0].max_order + 1;
+
     // Crear el servicio
     const result = await sql`
-      INSERT INTO services (title, category_id, price, image, description)
-      VALUES (${title}, ${category_id}, ${price}, ${image}, ${description})
+      INSERT INTO services (title, category_id, price, image, description, display_order)
+      VALUES (${title}, ${category_id}, ${price}, ${image}, ${description}, ${nextOrder})
       RETURNING id
     `;
     
@@ -132,11 +140,24 @@ export async function deleteService(id: string) {
   }
 
   try {
-    // Obtener la URL de la imagen antes de eliminar
-    const service = await sql`SELECT image FROM services WHERE id = ${id}`;
+    // Obtener la URL de la imagen y datos del servicio antes de eliminar
+    const service = await sql`SELECT image, category_id, display_order FROM services WHERE id = ${id}`;
     
+    if (service.length === 0) {
+      return { success: false, error: 'Servicio no encontrado' };
+    }
+
+    const { category_id: categoryId, display_order: deletedOrder } = service[0];
+
     // Eliminar el servicio de la base de datos (cascade eliminará relations)
     await sql`DELETE FROM services WHERE id = ${id}`;
+
+    // Ajustar el orden de los servicios posteriores en la misma categoría
+    await sql`
+      UPDATE services
+      SET display_order = display_order - 1
+      WHERE category_id = ${categoryId} AND display_order > ${deletedOrder}
+    `;
     
     // Eliminar la imagen del blob storage si existe
     if (service[0]?.image && service[0].image.includes('blob.vercel-storage.com')) {
@@ -153,5 +174,39 @@ export async function deleteService(id: string) {
   } catch (error) {
     console.error('Error deleting service:', error);
     return { success: false, error: 'Error al eliminar el servicio' };
+  }
+}
+
+export async function reorderServices(items: { id: string; display_order: number }[]) {
+  const session = await getServerSession(authOptions);
+  if (!session || (session.user as any).role !== 'admin') {
+    return { success: false, error: 'No autorizado' };
+  }
+
+  try {
+    // Actualizar el orden de todos los servicios en una transacción
+    // Primero establecemos todos a valores negativos temporales
+    for (let i = 0; i < items.length; i++) {
+      await sql`
+        UPDATE services
+        SET display_order = ${-(i + 1)}
+        WHERE id = ${items[i].id}
+      `;
+    }
+
+    // Luego asignamos los valores correctos
+    for (const item of items) {
+      await sql`
+        UPDATE services
+        SET display_order = ${item.display_order}
+        WHERE id = ${item.id}
+      `;
+    }
+
+    revalidatePath('/dashboard/services');
+    return { success: true };
+  } catch (error) {
+    console.error('Error reordering services:', error);
+    return { success: false, error: 'Error al reordenar servicios' };
   }
 }
