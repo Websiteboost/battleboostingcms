@@ -1,9 +1,11 @@
 'use client';
 
 import { Sidebar } from '@/components/layout/Sidebar';
+import { SessionMonitor } from '@/components/providers/SessionProvider';
 import { Menu, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { signOut } from 'next-auth/react';
+import { Toaster } from 'react-hot-toast';
 
 export default function DashboardLayout({
   children,
@@ -13,8 +15,10 @@ export default function DashboardLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+    <SessionMonitor>
+      <Toaster />
+      <div className="flex min-h-screen">
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Header Mobile */}
@@ -47,5 +51,6 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+    </SessionMonitor>
   );
 }

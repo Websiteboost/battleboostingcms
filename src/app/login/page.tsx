@@ -2,12 +2,14 @@
 
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -27,12 +29,37 @@ export default function LoginPage() {
 
       if (result?.error) {
         setError('Credenciales inválidas');
+        toast.error('Credenciales inválidas', {
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            border: '1px solid rgba(239, 68, 68, 0.5)',
+          },
+        });
       } else {
-        router.push('/dashboard');
-        router.refresh();
+        toast.success('¡Bienvenido de vuelta!', {
+          duration: 2000,
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            border: '1px solid rgba(139, 92, 246, 0.5)',
+          },
+        });
+        
+        setTimeout(() => {
+          router.push('/dashboard');
+          router.refresh();
+        }, 500);
       }
     } catch (error) {
       setError('Error al iniciar sesión');
+      toast.error('Error al iniciar sesión', {
+        style: {
+          background: '#1e293b',
+          color: '#fff',
+          border: '1px solid rgba(239, 68, 68, 0.5)',
+        },
+      });
     } finally {
       setLoading(false);
     }
@@ -40,6 +67,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
+      <Toaster position="top-center" />
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-6 sm:mb-8">
