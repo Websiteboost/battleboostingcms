@@ -196,6 +196,10 @@ export default function AccordionPage() {
           <p className="text-sm sm:text-base text-gray-400 mt-1">
             Gestiona el acordeón de preguntas y respuestas
           </p>
+          <p className="text-xs text-cyber-purple/70 mt-1 flex items-center gap-1">
+            <span className="inline-block w-1.5 h-1.5 bg-cyber-purple rounded-full animate-pulse"></span>
+            Arrastra la opción para editar el orden
+          </p>
         </div>
         <Button 
           onClick={openCreateModal}

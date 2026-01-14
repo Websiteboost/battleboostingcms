@@ -294,6 +294,10 @@ export default function ServicesPage() {
           <p className="text-sm sm:text-base text-gray-400 mt-1">
             {services.length} {services.length === 1 ? 'servicio' : 'servicios'}
           </p>
+          <p className="text-xs text-cyber-purple/70 mt-1 flex items-center gap-1">
+            <span className="inline-block w-1.5 h-1.5 bg-cyber-purple rounded-full animate-pulse"></span>
+            Arrastra el servicio para editar el orden
+          </p>
         </div>
         <Button onClick={openCreateModal} className="w-full sm:w-auto">
           <Plus size={20} className="mr-2" />
