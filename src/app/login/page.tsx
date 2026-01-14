@@ -74,7 +74,7 @@ export default function LoginPage() {
           <h1 className="text-3xl sm:text-4xl font-bold neon-text mb-2">
             BattleBoost CMS
           </h1>
-          <p className="text-sm sm:text-base text-gray-400">Panel de Administración</p>
+          <p className="text-sm sm:text-base text-gray-400">Gestor de Contenido</p>
         </div>
 
         {/* Login Form */}
