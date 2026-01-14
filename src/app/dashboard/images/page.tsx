@@ -95,12 +95,20 @@ export default function ImagesPage() {
   const [images, setImages] = useState<BlobImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [totalSize, setTotalSize] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const loadImages = useCallback(async () => {
     setLoading(true);
     const result = await listImages();
     if (result.success && result.data) {
-      setImages(result.data as BlobImage[]);
+      const imageData = result.data as BlobImage[];
+      setImages(imageData);
+      setTotalCount(imageData.length);
+      
+      // Calcular el tamaño total
+      const total = imageData.reduce((acc, img) => acc + img.size, 0);
+      setTotalSize(total);
     }
     setLoading(false);
   }, []);
@@ -137,6 +145,15 @@ export default function ImagesPage() {
     navigator.clipboard.writeText(url);
   }, []);
 
+  // Formatear tamaño
+  const formatSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -152,10 +169,60 @@ export default function ImagesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold neon-text">Imágenes</h1>
-          <p className="text-sm sm:text-base text-gray-400 mt-1">
-            {images.length} {images.length === 1 ? 'imagen' : 'imágenes'} en almacenamiento
-          </p>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold neon-text mb-2">Imágenes</h1>
+          
+          {/* Stats Cards - Cyberpunk Style */}
+          <div className="flex flex-wrap gap-3 mt-3">
+            {/* Total Images */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-linear-to-r from-cyber-purple to-pink-500 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-200"></div>
+              <div className="relative px-4 py-2 bg-slate-800/90 border border-cyber-purple/50 rounded-lg backdrop-blur-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-cyber-purple rounded-full animate-pulse"></div>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider">Total</p>
+                    <p className="text-lg font-bold text-white">
+                      {totalCount} <span className="text-sm text-gray-400 font-normal">img</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Storage Size */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-linear-to-r from-blue-500 to-cyan-500 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-200"></div>
+              <div className="relative px-4 py-2 bg-slate-800/90 border border-blue-500/50 rounded-lg backdrop-blur-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider">Bucket</p>
+                    <p className="text-lg font-bold text-white">
+                      {formatSize(totalSize)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Average Size */}
+            {totalCount > 0 && (
+              <div className="relative group">
+                <div className="absolute inset-0 bg-linear-to-r from-green-500 to-emerald-500 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-200"></div>
+                <div className="relative px-4 py-2 bg-slate-800/90 border border-green-500/50 rounded-lg backdrop-blur-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <div>
+                      <p className="text-xs text-gray-400 uppercase tracking-wider">Promedio</p>
+                      <p className="text-lg font-bold text-white">
+                        {formatSize(totalSize / totalCount)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <Button onClick={() => setIsModalOpen(true)} className="w-full sm:w-auto">
           <Plus size={20} className="mr-2" />
