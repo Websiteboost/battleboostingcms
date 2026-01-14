@@ -36,9 +36,10 @@ function LoginForm() {
             border: '1px solid rgba(239, 68, 68, 0.5)',
           },
         });
-      } else {
+        setLoading(false);
+      } else if (result?.ok) {
         toast.success('¡Bienvenido de vuelta!', {
-          duration: 2000,
+          duration: 1500,
           style: {
             background: '#1e293b',
             color: '#fff',
@@ -46,12 +47,11 @@ function LoginForm() {
           },
         });
         
-        setTimeout(() => {
-          router.push('/dashboard');
-          router.refresh();
-        }, 500);
+        // Mantener loading en true durante la redirección
+        window.location.href = '/dashboard';
       }
     } catch (error) {
+      console.error('Login error:', error);
       setError('Error al iniciar sesión');
       toast.error('Error al iniciar sesión', {
         style: {
@@ -60,7 +60,6 @@ function LoginForm() {
           border: '1px solid rgba(239, 68, 68, 0.5)',
         },
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -109,7 +108,33 @@ function LoginForm() {
               disabled={loading}
               className="w-full"
             >
-              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <svg 
+                    className="animate-spin h-5 w-5" 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    fill="none" 
+                    viewBox="0 0 24 24"
+                  >
+                    <circle 
+                      className="opacity-25" 
+                      cx="12" 
+                      cy="12" 
+                      r="10" 
+                      stroke="currentColor" 
+                      strokeWidth="4"
+                    />
+                    <path 
+                      className="opacity-75" 
+                      fill="currentColor" 
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  <span>Iniciando sesión...</span>
+                </div>
+              ) : (
+                'Iniciar Sesión'
+              )}
             </Button>
           </form>
         </div>
