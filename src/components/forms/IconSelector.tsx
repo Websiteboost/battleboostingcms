@@ -4,26 +4,111 @@ import { useState, memo } from 'react';
 import * as Icons from 'lucide-react';
 
 const AVAILABLE_ICONS = [
+  // Gaming & Competitivo
   'Zap',
   'Trophy',
   'Award',
   'Shield',
   'Swords',
   'Sword',
-  'Users',
-  'Palette',
-  'Star',
-  'Crown',
   'Target',
-  'Flag',
-  'Heart',
+  'Crown',
   'Flame',
   'Sparkles',
+  'Star',
   'Rocket',
   'Gamepad2',
   'Dice1',
-  'Package',
+  'Dice2',
+  'Dice3',
+  'Dice4',
+  'Dice5',
+  'Dice6',
+  
+  // Usuarios & Social
+  'Users',
+  'User',
+  'UserPlus',
+  'UserCheck',
+  'UsersRound',
+  'Heart',
+  'MessageCircle',
+  'MessageSquare',
+  
+  // Acciones & Progreso
+  'TrendingUp',
+  'BarChart',
+  'Activity',
+  'Zap',
+  'Bolt',
+  'CircuitBoard',
+  'Cpu',
+  'HardDrive',
+  
+  // Dinero & Comercio
+  'DollarSign',
+  'CreditCard',
+  'Wallet',
+  'ShoppingCart',
   'Gift',
+  'Package',
+  'Box',
+  
+  // Velocidad & Potencia
+  'FastForward',
+  'Gauge',
+  'Fuel',
+  'Power',
+  'Battery',
+  'BatteryCharging',
+  'Zap',
+  
+  // Seguridad & Premium
+  'Lock',
+  'Unlock',
+  'Key',
+  'ShieldCheck',
+  'ShieldAlert',
+  'BadgeCheck',
+  'VerifiedIcon',
+  
+  // Diseño & Creatividad
+  'Palette',
+  'Brush',
+  'Wand2',
+  'Sparkles',
+  'Stars',
+  'Eye',
+  
+  // Comunicación
+  'Bell',
+  'BellRing',
+  'Mail',
+  'Send',
+  'Phone',
+  'Headphones',
+  
+  // Tiempo & Velocidad
+  'Clock',
+  'Timer',
+  'Hourglass',
+  'Repeat',
+  'RotateCw',
+  'RefreshCw',
+  
+  // Otros relevantes
+  'Flag',
+  'Mountain',
+  'Compass',
+  'Map',
+  'Navigation',
+  'Bookmark',
+  'Tag',
+  'Layers',
+  'Grid',
+  'Hexagon',
+  'Octagon',
+  'Pentagon',
 ] as const;
 
 interface IconSelectorProps {
@@ -72,8 +157,8 @@ export const IconSelector = memo(({ value, onChange, label = 'Icono' }: IconSele
 
       {/* Dropdown de iconos */}
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full max-w-md bg-slate-800 border border-cyber-purple/50 rounded-lg shadow-xl p-2 max-h-96 overflow-y-auto">
-          <div className="grid grid-cols-4 gap-2">
+        <div className="absolute z-50 mt-2 w-full max-w-2xl bg-slate-800 border border-cyber-purple/50 rounded-lg shadow-xl p-3 max-h-96 overflow-y-auto">
+          <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
             {AVAILABLE_ICONS.map((iconName) => {
               const IconComponent = (Icons as any)[iconName];
               const isSelected = value === iconName;
