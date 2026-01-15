@@ -171,7 +171,7 @@ export default function ConfigPage() {
             </p>
 
             <Input
-              label="Título Principal"
+              label="Título Principal (Tab)"
               value={config.home_title}
               onChange={(e) => setConfig({ ...config, home_title: e.target.value })}
               required
