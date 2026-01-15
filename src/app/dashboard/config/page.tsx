@@ -19,6 +19,8 @@ interface SiteConfig {
   footer_payment_title: string;
   footer_copyright: string;
   disclaimer: string;
+  discord_link: string;
+  discord_work_us: string;
 }
 
 export default function ConfigPage() {
@@ -31,6 +33,8 @@ export default function ConfigPage() {
     footer_payment_title: '',
     footer_copyright: '',
     disclaimer: '',
+    discord_link: '',
+    discord_work_us: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -240,6 +244,36 @@ export default function ConfigPage() {
             />
             <p className="text-xs text-gray-400">
               Este título se muestra encima del acordeón de preguntas frecuentes en la página pública.
+            </p>
+          </div>
+        </Card>
+
+        {/* Sección Discord */}
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Settings className="text-cyber-purple" size={24} />
+            <h2 className="text-xl font-bold">Discord</h2>
+          </div>
+
+          <div className="space-y-4">
+            <Input
+              label="Link de Discord (Servidor Principal)"
+              value={config.discord_link}
+              onChange={(e) => setConfig({ ...config, discord_link: e.target.value })}
+              placeholder="https://discord.gg/tu-servidor-aqui"
+            />
+            <p className="text-xs text-gray-400 -mt-2">
+              Link de invitación al servidor de Discord principal.
+            </p>
+
+            <Input
+              label="Link de Discord (Trabaja con Nosotros)"
+              value={config.discord_work_us}
+              onChange={(e) => setConfig({ ...config, discord_work_us: e.target.value })}
+              placeholder="https://discord.gg/tu-servidor-work-aqui"
+            />
+            <p className="text-xs text-gray-400 -mt-2">
+              Link de Discord para reclutamiento y trabajo.
             </p>
           </div>
         </Card>
