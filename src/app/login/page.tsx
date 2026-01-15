@@ -25,6 +25,7 @@ function LoginForm() {
         email,
         password,
         redirect: false,
+        callbackUrl: '/dashboard',
       });
 
       if (result?.error) {
@@ -39,7 +40,7 @@ function LoginForm() {
         setLoading(false);
       } else if (result?.ok) {
         toast.success('¡Bienvenido de vuelta!', {
-          duration: 1500,
+          duration: 1000,
           style: {
             background: '#1e293b',
             color: '#fff',
@@ -47,8 +48,16 @@ function LoginForm() {
           },
         });
         
-        // Mantener loading en true durante la redirección
-        window.location.href = '/dashboard';
+        // Pequeña pausa para que se establezca la sesión
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Usar router.push primero, si falla usar window.location
+        try {
+          await router.push('/dashboard');
+          router.refresh();
+        } catch {
+          window.location.href = '/dashboard';
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
