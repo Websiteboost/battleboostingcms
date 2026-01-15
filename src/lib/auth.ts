@@ -18,13 +18,16 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        console.log('🔐 NextAuth: authorize called');
         if (!credentials?.email || !credentials?.password) {
+          console.log('❌ NextAuth: Missing credentials');
           return null;
         }
 
         const validatedFields = loginSchema.safeParse(credentials);
 
         if (!validatedFields.success) {
+          console.log('❌ NextAuth: Validation failed');
           return null;
         }
 
@@ -40,27 +43,31 @@ export const authOptions: NextAuthOptions = {
           const user = result[0] as any;
 
           if (!user) {
+            console.log('❌ NextAuth: User not found');
             return null;
           }
 
           const passwordMatch = await bcrypt.compare(password, user.password_hash);
 
           if (!passwordMatch) {
+            console.log('❌ NextAuth: Password mismatch');
             return null;
           }
 
           // Solo permitir administradores
           if (user.role !== 'admin') {
+            console.log('❌ NextAuth: User is not admin');
             return null;
           }
 
+          console.log('✅ NextAuth: User authorized:', user.email);
           return {
             id: user.id,
             email: user.email,
             role: user.role,
           };
         } catch (error) {
-          console.error('Auth error:', error);
+          console.error('❌ NextAuth: Auth error:', error);
           return null;
         }
       },
@@ -97,15 +104,16 @@ export const authOptions: NextAuthOptions = {
     maxAge: 15 * 60, // 15 minutos (900 segundos) - expira sin renovación
   },
   secret: process.env.NEXTAUTH_SECRET,
-  useSecureCookies: process.env.NODE_ENV === 'production',
+  debug: process.env.NODE_ENV === 'development',
   cookies: {
     sessionToken: {
-      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
+      name: `next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
+        domain: process.env.NODE_ENV === 'production' ? '.battleboost.pro' : undefined,
       },
     },
   },

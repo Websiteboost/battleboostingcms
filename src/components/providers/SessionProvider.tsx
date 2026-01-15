@@ -10,10 +10,14 @@ export function SessionMonitor({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const hasShownToast = useRef(false);
   const previousStatus = useRef(status);
+  const isInitialLoad = useRef(true);
 
   useEffect(() => {
+    console.log('🔍 SessionMonitor - Status:', status, 'Previous:', previousStatus.current, 'Session:', !!session);
+    
     // Si el estado cambió de authenticated a unauthenticated
     if (previousStatus.current === 'authenticated' && status === 'unauthenticated') {
+      console.log('❌ Sesión expirada detectada');
       if (!hasShownToast.current) {
         hasShownToast.current = true;
         toast.error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.', {
@@ -33,16 +37,21 @@ export function SessionMonitor({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Si estamos en unauthenticated y no es la primera carga
-    if (status === 'unauthenticated' && previousStatus.current !== 'loading') {
+    // Solo redirigir si no es la carga inicial y después de que loading haya terminado
+    if (status === 'unauthenticated' && previousStatus.current === 'loading' && !isInitialLoad.current) {
+      console.log('⚠️ No autenticado después de cargar');
       if (!hasShownToast.current && window.location.pathname !== '/login') {
         hasShownToast.current = true;
         router.push('/login');
       }
     }
 
+    if (isInitialLoad.current && status !== 'loading') {
+      isInitialLoad.current = false;
+    }
+
     previousStatus.current = status;
-  }, [status, router]);
+  }, [status, router, session]);
 
   // Reset del flag cuando vuelve a estar autenticado
   useEffect(() => {

@@ -21,12 +21,15 @@ function LoginForm() {
     setLoading(true);
 
     try {
+      console.log('🔐 Intentando login...');
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
         callbackUrl: '/dashboard',
       });
+
+      console.log('📊 Resultado del login:', { ok: result?.ok, error: result?.error, status: result?.status, url: result?.url });
 
       if (result?.error) {
         setError('Credenciales inválidas');
@@ -39,6 +42,7 @@ function LoginForm() {
         });
         setLoading(false);
       } else if (result?.ok) {
+        console.log('✅ Login exitoso, redirigiendo...');
         toast.success('¡Bienvenido de vuelta!', {
           duration: 1000,
           style: {
@@ -49,15 +53,11 @@ function LoginForm() {
         });
         
         // Pequeña pausa para que se establezca la sesión
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 800));
         
-        // Usar router.push primero, si falla usar window.location
-        try {
-          await router.push('/dashboard');
-          router.refresh();
-        } catch {
-          window.location.href = '/dashboard';
-        }
+        console.log('🔄 Redirigiendo a dashboard...');
+        // Forzar una redirección completa con recarga
+        window.location.href = '/dashboard';
       }
     } catch (error) {
       console.error('Login error:', error);
