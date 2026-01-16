@@ -21,6 +21,7 @@ interface SiteConfig {
   disclaimer: string;
   discord_link: string;
   discord_work_us: string;
+  payment_disclaimer: string;
 }
 
 export default function ConfigPage() {
@@ -35,6 +36,7 @@ export default function ConfigPage() {
     disclaimer: '',
     discord_link: '',
     discord_work_us: '',
+    payment_disclaimer: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -316,6 +318,22 @@ export default function ConfigPage() {
               />
               <p className="text-xs text-gray-400">
                 Mensaje de liberación de responsabilidad que se muestra en el footer.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-200">
+                Aviso de Pago
+              </label>
+              <textarea
+                value={config.payment_disclaimer}
+                onChange={(e) => setConfig({ ...config, payment_disclaimer: e.target.value })}
+                rows={3}
+                placeholder="After completing your payment, please create a ticket in our Discord server to start your order..."
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-cyber-purple/50 focus:border-cyber-purple transition-all duration-300 resize-vertical"
+              />
+              <p className="text-xs text-gray-400">
+                Mensaje que se muestra después de completar el pago (opcional).
               </p>
             </div>
           </div>

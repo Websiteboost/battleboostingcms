@@ -70,7 +70,7 @@ export async function resetDatabase() {
 
     await sql`CREATE TABLE IF NOT EXISTS payment_methods (id UUID PRIMARY KEY DEFAULT gen_random_uuid(),name VARCHAR(100) NOT NULL,icon VARCHAR(50) NOT NULL,type VARCHAR(50) NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`;
 
-    await sql`CREATE TABLE IF NOT EXISTS site_config (id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),logo_text VARCHAR(255) NOT NULL,home_title VARCHAR(255) NOT NULL,home_subtitle TEXT NOT NULL,home_categories TEXT[] NOT NULL,accordion_title VARCHAR(255) NOT NULL DEFAULT 'Frequently Asked Questions',footer_payment_title VARCHAR(255) NOT NULL,footer_copyright TEXT NOT NULL,disclaimer TEXT,discord_link TEXT,discord_work_us TEXT,updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`;
+    await sql`CREATE TABLE IF NOT EXISTS site_config (id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),logo_text VARCHAR(255) NOT NULL,home_title VARCHAR(255) NOT NULL,home_subtitle TEXT NOT NULL,home_categories TEXT[] NOT NULL,accordion_title VARCHAR(255) NOT NULL DEFAULT 'Frequently Asked Questions',footer_payment_title VARCHAR(255) NOT NULL,footer_copyright TEXT NOT NULL,disclaimer TEXT,discord_link TEXT,discord_work_us TEXT,payment_disclaimer TEXT,updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`;
     await sql`CREATE TRIGGER update_site_config_updated_at BEFORE UPDATE ON site_config FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`;
 
     // PARTE 2: Insertar datos
@@ -120,7 +120,7 @@ export async function resetDatabase() {
 
     await sql`INSERT INTO payment_methods (name,icon,type) VALUES ('PayPal','paypal','paypal'),('Visa/Mastercard','credit-card','card')`;
 
-    await sql`INSERT INTO site_config (id,logo_text,home_title,home_subtitle,home_categories,accordion_title,footer_payment_title,footer_copyright,disclaimer,discord_link,discord_work_us) VALUES (1,'BATTLE BOOSTING','BattleBoosting Gaming Services','Your trusted platform for professional gaming services',ARRAY['MMO Boosting','Ranked Services','Power Leveling','Achievement Hunting'],'Frequently Asked Questions','Accepted payment methods','© 2025 BattleBoosting. All rights reserved.','All services are provided for entertainment purposes only. We are not affiliated with any game developers or publishers.','https://discord.gg/battleboost','https://discord.gg/battleboost-jobs')`;
+    await sql`INSERT INTO site_config (id,logo_text,home_title,home_subtitle,home_categories,accordion_title,footer_payment_title,footer_copyright,disclaimer,discord_link,discord_work_us,payment_disclaimer) VALUES (1,'BATTLE BOOSTING','BattleBoosting Gaming Services','Your trusted platform for professional gaming services',ARRAY['MMO Boosting','Ranked Services','Power Leveling','Achievement Hunting'],'Frequently Asked Questions','Accepted payment methods','© 2025 BattleBoosting. All rights reserved.','All services are provided for entertainment purposes only. We are not affiliated with any game developers or publishers.','https://discord.gg/battleboost','https://discord.gg/battleboost-jobs','After completing your payment, please create a ticket in our Discord server to start your order. Join BattleBoost Discord community for support!')`;
 
     revalidatePath('/dashboard');
     return { success: true, message: 'Base de datos reiniciada exitosamente' };
