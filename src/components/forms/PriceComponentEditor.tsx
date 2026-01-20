@@ -497,6 +497,9 @@ export const BoxTitleEditor = memo(({ config, onChange }: BoxTitleEditorProps) =
     <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-blue-500/30">
       <h4 className="text-sm font-medium text-blue-400">Cajas con Título y Datos</h4>
       <p className="text-xs text-gray-400">Muestra información sin valor numérico</p>
+      <div className="p-2 bg-blue-500/10 border border-blue-500/30 rounded text-xs text-gray-300">
+        ℹ️ Si el texto es corto, la caja será pequeña. Si es largo, su tamaño por defecto se dobla.
+      </div>
       
       {config.options.map((option, index) => (
         <div key={index} className="flex gap-2">
