@@ -35,7 +35,7 @@ export async function createGame(data: z.infer<typeof gameSchema>) {
 
   const validatedFields = gameSchema.safeParse(data);
   if (!validatedFields.success) {
-    const errors = validatedFields.error.errors.map(err => {
+    const errors = validatedFields.error.issues.map(err => {
       const field = err.path.join('.');
       return `${field ? field + ': ' : ''}${err.message}`;
     });
