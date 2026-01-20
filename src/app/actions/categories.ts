@@ -38,7 +38,16 @@ export async function createCategory(data: z.infer<typeof categorySchema>) {
 
   const validatedFields = categorySchema.safeParse(data);
   if (!validatedFields.success) {
-    return { success: false, error: 'Datos inválidos' };
+    const errors = validatedFields.error?.issues?.map((err: any) => {
+      const field = err.path.join('.');
+      return `${field ? field + ': ' : ''}${err.message}`;
+    }) || ['Error de validación desconocido'];
+    return { 
+      success: false, 
+      error: 'Datos inválidos',
+      details: errors,
+      validationErrors: validatedFields.error?.format()
+    };
   }
 
   const { name, description, icon, gameIds } = validatedFields.data;
@@ -80,7 +89,16 @@ export async function updateCategory(data: z.infer<typeof categorySchema>) {
 
   const validatedFields = categorySchema.safeParse(data);
   if (!validatedFields.success) {
-    return { success: false, error: 'Datos inválidos' };
+    const errors = validatedFields.error?.issues?.map((err: any) => {
+      const field = err.path.join('.');
+      return `${field ? field + ': ' : ''}${err.message}`;
+    }) || ['Error de validación desconocido'];
+    return { 
+      success: false, 
+      error: 'Datos inválidos',
+      details: errors,
+      validationErrors: validatedFields.error?.format()
+    };
   }
 
   const { id, name, description, icon, gameIds } = validatedFields.data;

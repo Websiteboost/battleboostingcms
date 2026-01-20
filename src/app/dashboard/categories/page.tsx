@@ -11,6 +11,7 @@ import { CategoryForm } from '@/components/forms/CategoryForm';
 import { Pencil, Trash2, Plus, GripVertical } from 'lucide-react';
 import type { Category, Game } from '@/types';
 import * as Icons from 'lucide-react';
+import toast from 'react-hot-toast';
 
 // CategoryCard como componente memoizado
 const CategoryCard = memo(({ 
@@ -159,9 +160,20 @@ export default function CategoriesPage() {
       : await createCategory(data);
 
     if (result.success) {
+      toast.success(editingCategory ? 'Categoría actualizada exitosamente' : 'Categoría creada exitosamente', {
+        duration: 3000,
+        position: 'top-center',
+      });
       await loadData();
       closeModal();
     } else {
+      if ((result as any).details && Array.isArray((result as any).details)) {
+        (result as any).details.forEach((detail: string) => {
+          toast.error(detail, { duration: 5000, position: 'top-center' });
+        });
+      } else {
+        toast.error(result.error || 'Error al guardar', { duration: 4000, position: 'top-center' });
+      }
       throw new Error(result.error || 'Error al guardar');
     }
   }, [editingCategory, loadData, closeModal]);
@@ -171,9 +183,16 @@ export default function CategoriesPage() {
     
     const result = await deleteCategory(id);
     if (result.success) {
+      toast.success('Categoría eliminada exitosamente', {
+        duration: 3000,
+        position: 'top-center',
+      });
       await loadData();
     } else {
-      alert(result.error || 'Error al eliminar');
+      toast.error(result.error || 'Error al eliminar', {
+        duration: 4000,
+        position: 'top-center',
+      });
     }
   }, [loadData]);
 

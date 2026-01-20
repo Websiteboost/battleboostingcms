@@ -45,7 +45,7 @@ export async function resetDatabase() {
     await sql`CREATE INDEX idx_category_games_category_id ON category_games(category_id)`;
     await sql`CREATE INDEX idx_category_games_game_id ON category_games(game_id)`;
 
-    await sql`CREATE TABLE IF NOT EXISTS services (id VARCHAR(50) PRIMARY KEY,title VARCHAR(255) NOT NULL,category_id VARCHAR(100) NOT NULL,price DECIMAL(10,2) NOT NULL,image TEXT NOT NULL,description TEXT[] NOT NULL,display_order INTEGER NOT NULL DEFAULT 1,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT)`;
+    await sql`CREATE TABLE IF NOT EXISTS services (id VARCHAR(50) PRIMARY KEY,title VARCHAR(255) NOT NULL,category_id VARCHAR(100) NOT NULL,price DECIMAL(10,2) NOT NULL,image TEXT NOT NULL,description TEXT[] NOT NULL,service_points TEXT[] DEFAULT ARRAY[]::TEXT[],display_order INTEGER NOT NULL DEFAULT 1,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT)`;
     await sql`CREATE INDEX idx_services_category_id ON services(category_id)`;
     await sql`CREATE INDEX idx_services_price ON services(price)`;
     await sql`CREATE INDEX idx_services_display_order ON services(display_order)`;
@@ -57,10 +57,12 @@ export async function resetDatabase() {
     await sql`CREATE INDEX idx_service_games_service_id ON service_games(service_id)`;
     await sql`CREATE INDEX idx_service_games_game_id ON service_games(game_id)`;
 
-    await sql`CREATE TABLE IF NOT EXISTS service_prices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(),service_id VARCHAR(50) NOT NULL,type VARCHAR(50) NOT NULL CHECK (type IN ('bar','box','custom','selectors','additional')),config JSONB NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE)`;
+    await sql`CREATE TABLE IF NOT EXISTS service_prices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(),service_id VARCHAR(50) NOT NULL,type VARCHAR(50) NOT NULL CHECK (type IN ('bar','box','custom','selectors','additional','boxtitle','labeltitle')),config JSONB NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE)`;
     await sql`CREATE INDEX idx_service_prices_service_id ON service_prices(service_id)`;
     await sql`CREATE INDEX idx_service_prices_type ON service_prices(type)`;
     await sql`CREATE INDEX idx_service_prices_config ON service_prices USING GIN (config)`;
+    await sql`CREATE INDEX idx_service_prices_created_at ON service_prices(created_at)`;
+
 
     await sql`CREATE TABLE IF NOT EXISTS accordion_items (id VARCHAR(50) PRIMARY KEY,title VARCHAR(255) NOT NULL,content TEXT NOT NULL,display_order INTEGER NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`;
     await sql`CREATE INDEX idx_accordion_items_order ON accordion_items(display_order)`;
@@ -97,6 +99,8 @@ export async function resetDatabase() {
     await sql`INSERT INTO service_prices (service_id,type,config) VALUES ('ah-2','bar','{"initValue":10,"finalValue":100,"step":5,"label":"Select Achievement Count"}'::jsonb)`;
     await sql`INSERT INTO service_prices (service_id,type,config) VALUES ('ah-2','box','{"options":[{"label":"$15","value":15},{"label":"$30","value":30},{"label":"$50","value":50},{"label":"$75","value":75}]}'::jsonb)`;
     await sql`INSERT INTO service_prices (service_id,type,config) VALUES ('ah-2','additional','{"addOption1":{"type":"checkbox","value":25,"label":"Rare Achievements"},"addOption2":{"type":"checkbox","value":15,"label":"Secret Achievements"}}'::jsonb)`;
+    await sql`INSERT INTO service_prices (service_id,type,config) VALUES ('ah-2','labeltitle','{"title":"📋 What''s Included"}'::jsonb)`;
+    await sql`INSERT INTO service_prices (service_id,type,config) VALUES ('ah-2','boxtitle','{"options":[{"label":"ETA","value":"1-3 business days"},{"label":"Includes","value":"All achievements + bonus content"},{"label":"Support","value":"24/7 live chat"}]}'::jsonb)`;
     await sql`INSERT INTO service_prices (service_id,type,config) VALUES ('gf-1','bar','{"initValue":100,"finalValue":300,"step":10,"label":"Select Item Level"}'::jsonb)`;
     await sql`INSERT INTO service_prices (service_id,type,config) VALUES ('gf-1','additional','{"addOption1":{"type":"checkbox","value":25,"label":"Best in Slot Items"},"addOption2":{"type":"checkbox","value":15,"label":"Enchant All Items"},"addOption3":{"type":"checkbox","value":10,"label":"Socket Gems"}}'::jsonb)`;
     await sql`INSERT INTO service_prices (service_id,type,config) VALUES ('gf-2','box','{"options":[{"label":"Common","value":20},{"label":"Rare","value":35},{"label":"Epic","value":50},{"label":"Legendary","value":70},{"label":"Mythic","value":100}]}'::jsonb)`;

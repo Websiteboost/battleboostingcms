@@ -55,7 +55,14 @@ export const AccordionForm = memo(function AccordionForm({
 
     setSaving(true);
     try {
-      await onSubmit(formData);
+      // Asegurar que display_order sea un número
+      const cleanedData = {
+        ...formData,
+        display_order: typeof formData.display_order === 'string' 
+          ? parseInt(formData.display_order, 10) 
+          : formData.display_order
+      };
+      await onSubmit(cleanedData);
     } catch (error) {
       console.error('Error al guardar:', error);
       alert(error instanceof Error ? error.message : 'Error al guardar');

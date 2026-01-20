@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback, memo, useEffect } from 'react';
+import { useState, useCallback, memo, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ImagePreview } from './ImagePreview';
 import { PriceComponentEditor } from './PriceComponentEditor';
 import { Trash2, Plus } from 'lucide-react';
+import toast from 'react-hot-toast';
 import type { Game } from '@/types';
 import type { 
   PriceComponentType, 
@@ -14,7 +15,9 @@ import type {
   BoxConfig,
   SelectorsConfig,
   AdditionalConfig,
-  CustomConfig
+  CustomConfig,
+  BoxTitleConfig,
+  LabelTitleConfig
 } from '@/types/priceComponents';
 
 interface ServiceFormProps {
@@ -24,6 +27,7 @@ interface ServiceFormProps {
     price: number;
     image: string;
     description: string[];
+    service_points?: string[];
     priceComponents?: PriceComponent[];
     gameIds?: string[];
   };
@@ -35,6 +39,7 @@ interface ServiceFormProps {
     price: number; 
     image: string; 
     description: string[];
+    service_points?: string[];
     priceComponents: Omit<PriceComponent, 'id' | 'created_at'>[];
     gameIds: string[];
   }) => Promise<void>;
@@ -52,9 +57,13 @@ const getDefaultConfig = (type: PriceComponentType): any => {
     case 'selectors':
       return { 'Choose Option': [{ label: '', value: 0 }] } as SelectorsConfig;
     case 'additional':
-      return { addOption1: { type: 'checkbox', value: 0, label: '' } } as AdditionalConfig;
+      return { title: 'Servicios Adicionales', addOption1: { type: 'checkbox', value: 0, label: '' } } as AdditionalConfig;
     case 'custom':
       return { label: 'Enter Amount', presets: [] } as CustomConfig;
+    case 'boxtitle':
+      return { options: [{ label: '', value: '' }] } as BoxTitleConfig;
+    case 'labeltitle':
+      return { title: 'Nueva Sección' } as LabelTitleConfig;
   }
 };
 
@@ -65,31 +74,94 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
     price: 0,
     image: '',
     description: [''],
+    service_points: [''],
     priceComponents: [],
     gameIds: [],
   });
   const [saving, setSaving] = useState(false);
+  
+  // Refs para hacer focus en campos con error
+  const titleRef = useRef<HTMLInputElement>(null);
+  const categoryRef = useRef<HTMLSelectElement>(null);
+  const imageRef = useRef<HTMLInputElement>(null);
 
+  // Sincronizar initialData cuando cambie cualquier propiedad
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
     }
-  }, [initialData?.title, initialData?.category_id, initialData?.price, initialData?.image, initialData?.gameIds]);
+  }, [
+    initialData?.title,
+    initialData?.category_id,
+    initialData?.price,
+    initialData?.image,
+    JSON.stringify(initialData?.gameIds),
+    JSON.stringify(initialData?.description),
+    JSON.stringify(initialData?.priceComponents)
+  ]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validación frontend antes de enviar
+    if (!formData.title || formData.title.trim() === '') {
+      toast.error('El título es requerido', { position: 'top-center', duration: 3000 });
+      titleRef.current?.focus();
+      titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    
+    if (!formData.category_id) {
+      toast.error('Debes seleccionar una categoría', { position: 'top-center', duration: 3000 });
+      categoryRef.current?.focus();
+      categoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    
+    if (!formData.image || formData.image.trim() === '') {
+      toast.error('La URL de la imagen es requerida', { position: 'top-center', duration: 3000 });
+      imageRef.current?.focus();
+      imageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    
+    // Validar que sea una URL válida
+    try {
+      new URL(formData.image);
+      if (!formData.image.startsWith('http://') && !formData.image.startsWith('https://')) {
+        throw new Error('Invalid protocol');
+      }
+    } catch {
+      toast.error('La URL de la imagen no es válida. Debe comenzar con http:// o https://', { 
+        position: 'top-center', 
+        duration: 4000 
+      });
+      imageRef.current?.focus();
+      imageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    
+    const cleanedDescriptions = formData.description.filter(d => d.trim() !== '');
+    if (cleanedDescriptions.length === 0) {
+      toast.error('Debe haber al menos una descripción', { position: 'top-center', duration: 3000 });
+      return;
+    }
+    
     setSaving(true);
     try {
-      // Filtrar descripciones vacías
+      // Filtrar descripciones y service points vacíos
       const cleanedData = {
         ...formData,
-        description: formData.description.filter(d => d.trim() !== ''),
+        price: typeof formData.price === 'string' ? parseFloat(formData.price) : formData.price,
+        description: cleanedDescriptions,
+        service_points: (formData.service_points || []).filter(p => p.trim() !== ''),
         priceComponents: formData.priceComponents?.map(({ id, created_at, ...rest }) => rest) || [],
         gameIds: formData.gameIds || [],
       };
       await onSubmit(cleanedData);
     } catch (error) {
       console.error('Error al guardar:', error);
+      // El error ya se muestra en la página padre con toast
     } finally {
       setSaving(false);
     }
@@ -127,6 +199,26 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
     setFormData(prev => ({
       ...prev,
       description: prev.description.filter((_, i) => i !== index),
+    }));
+  }, []);
+
+  // Service Points handlers
+  const handleServicePointChange = useCallback((index: number, value: string) => {
+    setFormData(prev => {
+      const newPoints = [...(prev.service_points || [''])];
+      newPoints[index] = value;
+      return { ...prev, service_points: newPoints };
+    });
+  }, []);
+
+  const addServicePoint = useCallback(() => {
+    setFormData(prev => ({ ...prev, service_points: [...(prev.service_points || ['']), ''] }));
+  }, []);
+
+  const removeServicePoint = useCallback((index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      service_points: (prev.service_points || ['']).filter((_, i) => i !== index),
     }));
   }, []);
 
@@ -180,6 +272,7 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
         <h3 className="text-lg font-bold text-white mb-3">Información Básica</h3>
         
         <Input
+          ref={titleRef}
           label="Título"
           value={formData.title}
           onChange={handleTitleChange}
@@ -192,6 +285,7 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
           Categoría
         </label>
         <select
+          ref={categoryRef}
           value={formData.category_id}
           onChange={handleCategoryChange}
           required
@@ -215,6 +309,7 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
         />
 
         <Input
+          ref={imageRef}
           label="URL de Imagen"
           value={formData.image}
           onChange={handleImageChange}
@@ -281,62 +376,54 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
         </Button>
       </div>
 
+      {/* Service Points */}
+      <div className="space-y-3 p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+        <h3 className="text-lg font-bold text-white mb-3">Service Points (Información Adicional)</h3>
+        <p className="text-xs text-gray-400 mb-3">Puntos clave o beneficios adicionales del servicio</p>
+        
+        {(formData.service_points || ['']).map((point, index) => (
+          <div key={index} className="flex gap-2">
+            <Input
+              value={point}
+              onChange={(e) => handleServicePointChange(index, e.target.value)}
+              placeholder={`Service Point ${index + 1}`}
+              className="flex-1"
+            />
+            {(formData.service_points || ['']).length > 1 && (
+              <Button
+                type="button"
+                variant="danger"
+                onClick={() => removeServicePoint(index)}
+                className="px-3!"
+              >
+                <Trash2 size={16} />
+              </Button>
+            )}
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={addServicePoint}
+          className="w-full"
+        >
+          <Plus size={16} className="inline mr-2" />
+          Agregar Service Point
+        </Button>
+      </div>
+
       {/* Componentes de Precio Dinámico */}
       <div className="space-y-3 p-4 bg-slate-900/50 rounded-lg border border-cyber-purple/50">
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-lg font-bold text-white">Componentes de Precio Dinámico</h3>
           <span className="text-xs text-gray-400">
-            {(formData.priceComponents?.length || 0)} componente(s)
+            {(formData.priceComponents?.length || 0)} componente(s) agregado(s)
           </span>
         </div>
 
         <div className="p-3 bg-cyber-purple/10 border border-cyber-purple/30 rounded-lg text-sm text-gray-300">
           <p className="font-medium text-white mb-1">💡 ¿Qué son los componentes de precio?</p>
           <p className="text-xs">Los componentes permiten crear precios dinámicos. El usuario podrá configurar opciones que cambiarán el precio final.</p>
-        </div>
-
-        {/* Botones para agregar componentes */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => addPriceComponent('bar')}
-            className="text-xs"
-          >
-            + Barra
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => addPriceComponent('box')}
-            className="text-xs"
-          >
-            + Cajas
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => addPriceComponent('selectors')}
-            className="text-xs"
-          >
-            + Selectores
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => addPriceComponent('additional')}
-            className="text-xs"
-          >
-            + Adicionales
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => addPriceComponent('custom')}
-            className="text-xs"
-          >
-            + Custom
-          </Button>
         </div>
 
         {/* Lista de componentes agregados */}
@@ -362,9 +449,69 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
 
           {(!formData.priceComponents || formData.priceComponents.length === 0) && (
             <div className="text-center py-8 text-gray-500 text-sm">
-              No hay componentes de precio. Usa los botones de arriba para agregar.
+              No hay componentes de precio. Usa los botones de abajo para agregar.
             </div>
           )}
+        </div>
+
+        {/* Botones para agregar componentes */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-4 pt-4 border-t border-slate-700">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => addPriceComponent('bar')}
+            className="text-xs py-3"
+          >
+            + Barra
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => addPriceComponent('box')}
+            className="text-xs py-3"
+          >
+            + Cajas
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => addPriceComponent('selectors')}
+            className="text-xs py-3"
+          >
+            + Selectores
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => addPriceComponent('additional')}
+            className="text-xs py-3"
+          >
+            + Adicionales
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => addPriceComponent('custom')}
+            className="text-xs py-3"
+          >
+            + Custom
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => addPriceComponent('boxtitle')}
+            className="text-xs py-3"
+          >
+            + Caja Título
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => addPriceComponent('labeltitle')}
+            className="text-xs py-3"
+          >
+            + Separador
+          </Button>
         </div>
       </div>
 

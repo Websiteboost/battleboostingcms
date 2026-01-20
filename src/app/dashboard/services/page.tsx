@@ -14,6 +14,7 @@ import { Pencil, Trash2, Plus, Image as ImageIcon, GripVertical } from 'lucide-r
 import type { Service, Category, Game } from '@/types';
 import type { PriceComponent } from '@/types/priceComponents';
 import Image from 'next/image';
+import toast from 'react-hot-toast';
 
 // ServiceCard como componente memoizado
 const ServiceCard = memo(({ 
@@ -191,9 +192,27 @@ export default function ServicesPage() {
       : await createService(data);
 
     if (result.success) {
+      toast.success(editingService ? 'Servicio actualizado exitosamente' : 'Servicio creado exitosamente', {
+        duration: 3000,
+        position: 'top-center',
+      });
       await loadData();
       closeModal();
     } else {
+      // Mostrar errores detallados
+      if ((result as any).details && Array.isArray((result as any).details)) {
+        (result as any).details.forEach((detail: string) => {
+          toast.error(detail, {
+            duration: 5000,
+            position: 'top-center',
+          });
+        });
+      } else {
+        toast.error(result.error || 'Error al guardar', {
+          duration: 4000,
+          position: 'top-center',
+        });
+      }
       throw new Error(result.error || 'Error al guardar');
     }
   }, [editingService, loadData, closeModal]);
@@ -203,9 +222,16 @@ export default function ServicesPage() {
     
     const result = await deleteService(id);
     if (result.success) {
+      toast.success('Servicio eliminado exitosamente', {
+        duration: 3000,
+        position: 'top-center',
+      });
       await loadData();
     } else {
-      alert(result.error || 'Error al eliminar');
+      toast.error(result.error || 'Error al eliminar', {
+        duration: 4000,
+        position: 'top-center',
+      });
     }
   }, [loadData]);
 
@@ -350,6 +376,7 @@ export default function ServicesPage() {
               price: editingService.price,
               image: editingService.image,
               description: editingService.description,
+              service_points: (editingService as any).service_points || [],
               priceComponents: (editingService as any).priceComponents || [],
               gameIds: (editingService as any).gameIds || []
             } : undefined}

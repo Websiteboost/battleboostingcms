@@ -53,28 +53,31 @@ const ImageCard = memo(({
             Error al cargar
           </div>
         )}
-        {/* Overlay con acciones */}
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+        {/* Overlay con acciones - visible en mobile, hover en desktop */}
+        <div className="absolute inset-0 bg-black/60 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 md:gap-2">
           <Button
             variant="secondary"
             onClick={() => window.open(image.url, '_blank')}
-            className="p-2!"
+            className="p-4 md:p-2!"
+            title="Ver imagen"
           >
-            <ExternalLink size={16} />
+            <ExternalLink className="w-6 h-6 md:w-4 md:h-4" />
           </Button>
           <Button
             variant="secondary"
             onClick={handleCopy}
-            className="p-2!"
+            className="p-4 md:p-2!"
+            title="Copiar URL"
           >
-            {copied ? <Check size={16} /> : <Copy size={16} />}
+            {copied ? <Check className="w-6 h-6 md:w-4 md:h-4" /> : <Copy className="w-6 h-6 md:w-4 md:h-4" />}
           </Button>
           <Button
             variant="danger"
             onClick={onDelete}
-            className="p-2!"
+            className="p-4 md:p-2!"
+            title="Eliminar"
           >
-            <Trash2 size={16} />
+            <Trash2 className="w-6 h-6 md:w-4 md:h-4" />
           </Button>
         </div>
       </div>

@@ -35,7 +35,16 @@ export async function createGame(data: z.infer<typeof gameSchema>) {
 
   const validatedFields = gameSchema.safeParse(data);
   if (!validatedFields.success) {
-    return { success: false, error: 'Datos inválidos' };
+    const errors = validatedFields.error.errors.map(err => {
+      const field = err.path.join('.');
+      return `${field ? field + ': ' : ''}${err.message}`;
+    });
+    return { 
+      success: false, 
+      error: 'Datos inválidos',
+      details: errors,
+      validationErrors: validatedFields.error.format()
+    };
   }
 
   const { title, category, image } = validatedFields.data;
@@ -61,7 +70,16 @@ export async function updateGame(data: z.infer<typeof gameSchema>) {
 
   const validatedFields = gameSchema.safeParse(data);
   if (!validatedFields.success) {
-    return { success: false, error: 'Datos inválidos' };
+    const errors = validatedFields.error?.issues?.map((err: any) => {
+      const field = err.path.join('.');
+      return `${field ? field + ': ' : ''}${err.message}`;
+    }) || ['Error de validación desconocido'];
+    return { 
+      success: false, 
+      error: 'Datos inválidos',
+      details: errors,
+      validationErrors: validatedFields.error?.format()
+    };
   }
 
   const { id, title, category, image } = validatedFields.data;

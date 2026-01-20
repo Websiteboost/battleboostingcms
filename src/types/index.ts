@@ -29,6 +29,7 @@ export interface Service {
   price: number;
   image: string;
   description: string[];
+  service_points?: string[];
   created_at: Date;
   updated_at: Date;
 }

@@ -1,6 +1,6 @@
 // Tipos para los componentes de precio dinámico basados en GUIA-COMPONENTES.txt
 
-export type PriceComponentType = 'bar' | 'box' | 'custom' | 'selectors' | 'additional';
+export type PriceComponentType = 'bar' | 'box' | 'custom' | 'selectors' | 'additional' | 'boxtitle' | 'labeltitle';
 
 // ============================================================================
 // INCREMENTAL BAR (type: "bar")
@@ -48,7 +48,8 @@ export interface AdditionalOption {
 }
 
 export interface AdditionalConfig {
-  [optionKey: string]: AdditionalOption;  // addOption1, addOption2, etc.
+  title?: string;                     // Título personalizable del componente
+  [optionKey: string]: AdditionalOption | string | undefined;  // addOption1, addOption2, etc. o title
 }
 
 // ============================================================================
@@ -60,6 +61,25 @@ export interface CustomConfig {
 }
 
 // ============================================================================
+// BOX TITLE - Caja con títulos y datos (type: "boxtitle")
+// ============================================================================
+export interface BoxTitleOption {
+  label: string;          // Título de la opción
+  value: string;          // Datos/información asociada (texto, no precio)
+}
+
+export interface BoxTitleConfig {
+  options: BoxTitleOption[];
+}
+
+// ============================================================================
+// LABEL TITLE - Separador visual (type: "labeltitle")
+// ============================================================================
+export interface LabelTitleConfig {
+  title: string;          // Título del separador
+}
+
+// ============================================================================
 // TIPO UNION PARA TODAS LAS CONFIGURACIONES
 // ============================================================================
 export type PriceComponentConfig = 
@@ -67,7 +87,9 @@ export type PriceComponentConfig =
   | BoxConfig 
   | SelectorsConfig 
   | AdditionalConfig 
-  | CustomConfig;
+  | CustomConfig
+  | BoxTitleConfig
+  | LabelTitleConfig;
 
 // ============================================================================
 // ESTRUCTURA COMPLETA DE UN COMPONENTE DE PRECIO

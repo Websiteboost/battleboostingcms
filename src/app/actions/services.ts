@@ -17,9 +17,10 @@ const serviceSchema = z.object({
   price: z.number().min(0, { message: "El precio debe ser mayor o igual a 0" }),
   image: z.string().regex(/^https?:\/\/.+/, { message: "La URL de la imagen no es válida" }),
   description: z.array(z.string()).min(1, { message: "Debe haber al menos una descripción" }),
+  service_points: z.array(z.string()).optional(),
   priceComponents: z.array(z.object({
-    service_id: z.string(),
-    type: z.enum(['bar', 'box', 'custom', 'selectors', 'additional']),
+    service_id: z.string().optional(),
+    type: z.enum(['bar', 'box', 'custom', 'selectors', 'additional', 'boxtitle', 'labeltitle']),
     config: z.any(),
   })).optional(),
   gameIds: z.array(z.string()).optional(),
@@ -46,14 +47,26 @@ export async function createService(data: z.infer<typeof serviceSchema>) {
     return { success: false, error: 'No autorizado' };
   }
 
-  const validatedFields = serviceSchema.safeParse(data);
-  if (!validatedFields.success) {
-    return { success: false, error: 'Datos inválidos' };
-  }
-
-  const { title, category_id, price, image, description, priceComponents, gameIds } = validatedFields.data;
-
   try {
+    const validatedFields = serviceSchema.safeParse(data);
+    if (!validatedFields.success) {
+      const errors = validatedFields.error?.issues?.map((err: any) => {
+        const field = err.path.join('.');
+        return `${field ? field + ': ' : ''}${err.message}`;
+      }) || ['Error de validación desconocido'];
+      
+      console.error('Validation errors:', validatedFields.error);
+      
+      return { 
+        success: false, 
+        error: 'Datos inválidos',
+        details: errors,
+        validationErrors: validatedFields.error?.format()
+      };
+    }
+
+    const { title, category_id, price, image, description, service_points, priceComponents, gameIds } = validatedFields.data;
+
     // Obtener el máximo display_order actual para esta categoría
     const maxOrder = await sql`
       SELECT COALESCE(MAX(display_order), 0) as max_order 
@@ -64,8 +77,8 @@ export async function createService(data: z.infer<typeof serviceSchema>) {
 
     // Crear el servicio
     const result = await sql`
-      INSERT INTO services (title, category_id, price, image, description, display_order)
-      VALUES (${title}, ${category_id}, ${price}, ${image}, ${description}, ${nextOrder})
+      INSERT INTO services (title, category_id, price, image, description, service_points, display_order)
+      VALUES (${title}, ${category_id}, ${price}, ${image}, ${description}, ${service_points || []}, ${nextOrder})
       RETURNING id
     `;
     
@@ -95,23 +108,35 @@ export async function updateService(data: z.infer<typeof serviceSchema>) {
     return { success: false, error: 'No autorizado' };
   }
 
-  const validatedFields = serviceSchema.safeParse(data);
-  if (!validatedFields.success) {
-    return { success: false, error: 'Datos inválidos' };
-  }
-
-  const { id, title, category_id, price, image, description, priceComponents, gameIds } = validatedFields.data;
-
-  if (!id) {
-    return { success: false, error: 'ID del servicio es requerido' };
-  }
-
   try {
+    const validatedFields = serviceSchema.safeParse(data);
+    if (!validatedFields.success) {
+      const errors = validatedFields.error?.issues?.map((err: any) => {
+        const field = err.path.join('.');
+        return `${field ? field + ': ' : ''}${err.message}`;
+      }) || ['Error de validación desconocido'];
+      
+      console.error('Validation errors:', validatedFields.error);
+      
+      return { 
+        success: false, 
+        error: 'Datos inválidos',
+        details: errors,
+        validationErrors: validatedFields.error?.format()
+      };
+    }
+
+    const { id, title, category_id, price, image, description, service_points, priceComponents, gameIds } = validatedFields.data;
+
+    if (!id) {
+      return { success: false, error: 'ID del servicio es requerido' };
+    }
+
     // Actualizar el servicio
     await sql`
       UPDATE services
       SET title = ${title}, category_id = ${category_id}, price = ${price}, 
-          image = ${image}, description = ${description}
+          image = ${image}, description = ${description}, service_points = ${service_points || []}
       WHERE id = ${id}
     `;
 

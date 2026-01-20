@@ -33,7 +33,24 @@ export async function getAccordionItems() {
 
 export async function createAccordionItem(data: z.infer<typeof accordionSchema>) {
   try {
-    const validated = accordionSchema.parse(data);
+    const validatedData = accordionSchema.safeParse(data);
+    
+    if (!validatedData.success) {
+      const errors = validatedData.error?.issues?.map((err: any) => {
+        const field = err.path.join('.');
+        return `${field ? field + ': ' : ''}${err.message}`;
+      }) || ['Error de validación desconocido'];
+      
+      console.error('Validation errors:', validatedData.error);
+      
+      return {
+        success: false,
+        error: 'Datos inválidos',
+        details: errors
+      };
+    }
+    
+    const validated = validatedData.data;
     
     // Generar ID único
     const id = `item-${Date.now()}`;
@@ -65,9 +82,6 @@ export async function createAccordionItem(data: z.infer<typeof accordionSchema>)
     return { success: true, data: { id, ...validated } };
   } catch (error) {
     console.error('Error creating accordion item:', error);
-    if (error instanceof z.ZodError) {
-      return { success: false, error: error.issues[0].message };
-    }
     return { success: false, error: 'Error al crear item del acordeón' };
   }
 }
@@ -75,7 +89,25 @@ export async function createAccordionItem(data: z.infer<typeof accordionSchema>)
 export async function updateAccordionItem(data: z.infer<typeof accordionSchema> & { id: string }) {
   try {
     const { id, ...rest } = data;
-    const validated = accordionSchema.parse(rest);
+    
+    const validatedData = accordionSchema.safeParse(rest);
+    
+    if (!validatedData.success) {
+      const errors = validatedData.error?.issues?.map((err: any) => {
+        const field = err.path.join('.');
+        return `${field ? field + ': ' : ''}${err.message}`;
+      }) || ['Error de validación desconocido'];
+      
+      console.error('Validation errors:', validatedData.error);
+      
+      return {
+        success: false,
+        error: 'Datos inválidos',
+        details: errors
+      };
+    }
+    
+    const validated = validatedData.data;
     
     // Obtener el orden actual del item
     const currentItem = await sql`

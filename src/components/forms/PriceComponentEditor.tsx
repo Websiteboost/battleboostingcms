@@ -8,11 +8,15 @@ import type {
   BarConfig, 
   BoxConfig, 
   SelectorsConfig, 
-  AdditionalConfig, 
+  AdditionalConfig,
+  AdditionalOption,
   CustomConfig,
   PriceComponentType,
   BoxOption,
-  SelectorOption
+  SelectorOption,
+  BoxTitleConfig,
+  BoxTitleOption,
+  LabelTitleConfig
 } from '@/types/priceComponents';
 
 // ============================================================================
@@ -284,7 +288,21 @@ interface AdditionalEditorProps {
 }
 
 export const AdditionalEditor = memo(({ config, onChange }: AdditionalEditorProps) => {
-  const options = Object.entries(config);
+  // Separar el título de las opciones
+  const title = config.title || 'Servicios Adicionales (Checkboxes)';
+  const options = Object.entries(config)
+    .filter(([key]) => key !== 'title')
+    .filter((entry): entry is [string, AdditionalOption] => {
+      const [, value] = entry;
+      return typeof value === 'object' && value !== null && 'type' in value;
+    });
+
+  const updateTitle = (newTitle: string) => {
+    onChange({
+      ...config,
+      title: newTitle
+    });
+  };
 
   const addOption = () => {
     const newKey = `addOption${options.length + 1}`;
@@ -309,7 +327,17 @@ export const AdditionalEditor = memo(({ config, onChange }: AdditionalEditorProp
 
   return (
     <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-cyber-green/30">
-      <h4 className="text-sm font-medium text-cyber-green">Servicios Adicionales (Checkboxes)</h4>
+      {/* Título editable del componente */}
+      <Input
+        label="Título del Componente"
+        value={title}
+        onChange={(e) => updateTitle(e.target.value)}
+        placeholder="Ej: Servicios Premium, Extras Disponibles, etc."
+        className="mb-2"
+      />
+      
+      <div className="border-t border-slate-700 pt-3">
+        <h4 className="text-xs font-medium text-gray-400 mb-3">Opciones del Componente</h4>
       
       {options.map(([key, option]) => (
         <div key={key} className="flex gap-2">
@@ -349,6 +377,7 @@ export const AdditionalEditor = memo(({ config, onChange }: AdditionalEditorProp
       >
         + Agregar Servicio Adicional
       </Button>
+      </div>
     </div>
   );
 });
@@ -438,6 +467,108 @@ export const CustomEditor = memo(({ config, onChange }: CustomEditorProps) => {
 CustomEditor.displayName = 'CustomEditor';
 
 // ============================================================================
+// BOX TITLE COMPONENT EDITOR
+// ============================================================================
+interface BoxTitleEditorProps {
+  config: BoxTitleConfig;
+  onChange: (config: BoxTitleConfig) => void;
+}
+
+export const BoxTitleEditor = memo(({ config, onChange }: BoxTitleEditorProps) => {
+  const addOption = () => {
+    onChange({
+      options: [...config.options, { label: '', value: '' }]
+    });
+  };
+
+  const updateOption = (index: number, option: BoxTitleOption) => {
+    const newOptions = [...config.options];
+    newOptions[index] = option;
+    onChange({ options: newOptions });
+  };
+
+  const removeOption = (index: number) => {
+    onChange({
+      options: config.options.filter((_, i) => i !== index)
+    });
+  };
+
+  return (
+    <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-blue-500/30">
+      <h4 className="text-sm font-medium text-blue-400">Cajas con Título y Datos</h4>
+      <p className="text-xs text-gray-400">Muestra información sin valor numérico</p>
+      
+      {config.options.map((option, index) => (
+        <div key={index} className="flex gap-2">
+          <Input
+            label="Título"
+            value={option.label}
+            onChange={(e) => updateOption(index, { ...option, label: e.target.value })}
+            placeholder="Ej: Feature 1"
+            className="flex-1"
+            required
+          />
+          <Input
+            label="Datos/Información"
+            value={option.value}
+            onChange={(e) => updateOption(index, { ...option, value: e.target.value })}
+            placeholder="Ej: Includes XYZ"
+            className="flex-1"
+            required
+          />
+          <Button
+            type="button"
+            variant="danger"
+            onClick={() => removeOption(index)}
+            className="px-3! self-end"
+          >
+            <Trash2 size={16} />
+          </Button>
+        </div>
+      ))}
+      
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={addOption}
+        className="w-full"
+      >
+        + Agregar Opción
+      </Button>
+    </div>
+  );
+});
+
+BoxTitleEditor.displayName = 'BoxTitleEditor';
+
+// ============================================================================
+// LABEL TITLE COMPONENT EDITOR (Separador)
+// ============================================================================
+interface LabelTitleEditorProps {
+  config: LabelTitleConfig;
+  onChange: (config: LabelTitleConfig) => void;
+}
+
+export const LabelTitleEditor = memo(({ config, onChange }: LabelTitleEditorProps) => {
+  return (
+    <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-yellow-500/30">
+      <h4 className="text-sm font-medium text-yellow-400">Separador de Sección</h4>
+      <p className="text-xs text-gray-400">Muestra un título como divisor visual entre opciones</p>
+      
+      <Input
+        label="Título del Separador"
+        value={config.title}
+        onChange={(e) => onChange({ title: e.target.value })}
+        placeholder="Ej: Additional Options"
+        required
+      />
+    </div>
+  );
+});
+
+LabelTitleEditor.displayName = 'LabelTitleEditor';
+
+// ============================================================================
 // MAIN COMPONENT SELECTOR
 // ============================================================================
 interface PriceComponentEditorProps {
@@ -458,6 +589,10 @@ export const PriceComponentEditor = memo(({ type, config, onChange }: PriceCompo
       return <AdditionalEditor config={config} onChange={onChange} />;
     case 'custom':
       return <CustomEditor config={config} onChange={onChange} />;
+    case 'boxtitle':
+      return <BoxTitleEditor config={config} onChange={onChange} />;
+    case 'labeltitle':
+      return <LabelTitleEditor config={config} onChange={onChange} />;
     default:
       return null;
   }

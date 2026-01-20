@@ -109,12 +109,13 @@ export async function replaceServicePriceComponents(
       return [];
     }
 
-    // Insertamos los nuevos componentes
-    const insertPromises = components.map(component =>
-      createPriceComponent(serviceId, component.type, component.config)
-    );
+    // Insertamos los nuevos componentes SECUENCIALMENTE para mantener el orden
+    const newComponents: PriceComponent[] = [];
+    for (const component of components) {
+      const newComponent = await createPriceComponent(serviceId, component.type, component.config);
+      newComponents.push(newComponent);
+    }
 
-    const newComponents = await Promise.all(insertPromises);
     return newComponents;
   } catch (error) {
     console.error('Error al reemplazar componentes de precio:', error);

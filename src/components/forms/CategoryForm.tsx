@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback, memo, useEffect } from 'react';
+import { useState, useCallback, memo, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { IconSelector } from './IconSelector';
+import toast from 'react-hot-toast';
 import type { Game } from '@/types';
 
 interface CategoryFormProps {
@@ -27,6 +28,10 @@ export const CategoryForm = memo(({ initialData, games, onSubmit, onCancel, isEd
     gameIds: [],
   });
   const [saving, setSaving] = useState(false);
+  
+  // Refs para hacer focus en campos con error
+  const nameRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialData) {
@@ -36,6 +41,27 @@ export const CategoryForm = memo(({ initialData, games, onSubmit, onCancel, isEd
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validación frontend
+    if (!formData.name || formData.name.trim() === '') {
+      toast.error('El nombre es requerido', { position: 'top-center', duration: 3000 });
+      nameRef.current?.focus();
+      nameRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    
+    if (!formData.description || formData.description.trim() === '') {
+      toast.error('La descripción es requerida', { position: 'top-center', duration: 3000 });
+      descriptionRef.current?.focus();
+      descriptionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    
+    if (!formData.icon || formData.icon.trim() === '') {
+      toast.error('Debes seleccionar un icono', { position: 'top-center', duration: 3000 });
+      return;
+    }
+    
     setSaving(true);
     try {
       await onSubmit({
@@ -74,6 +100,7 @@ const handleGameToggle = useCallback((gameId: string) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
       <Input
+        ref={nameRef}
         label="Nombre"
         value={formData.name}
         onChange={handleNameChange}
@@ -82,6 +109,7 @@ const handleGameToggle = useCallback((gameId: string) => {
       />
 
       <Input
+        ref={descriptionRef}
         label="Descripción"
         value={formData.description}
         onChange={handleDescriptionChange}

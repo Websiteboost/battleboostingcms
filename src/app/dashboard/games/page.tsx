@@ -9,6 +9,7 @@ import { GameForm } from '@/components/forms/GameForm';
 import { Pencil, Trash2, Plus, Image as ImageIcon } from 'lucide-react';
 import type { Game } from '@/types';
 import Image from 'next/image';
+import toast from 'react-hot-toast';
 
 // GameCard como componente memoizado separado
 const GameCard = memo(({ 
@@ -115,9 +116,20 @@ export default function GamesPage() {
       : await createGame(data);
 
     if (result.success) {
+      toast.success(editingGame ? 'Juego actualizado exitosamente' : 'Juego creado exitosamente', {
+        duration: 3000,
+        position: 'top-center',
+      });
       await loadGames();
       closeModal();
     } else {
+      if ((result as any).details && Array.isArray((result as any).details)) {
+        (result as any).details.forEach((detail: string) => {
+          toast.error(detail, { duration: 5000, position: 'top-center' });
+        });
+      } else {
+        toast.error(result.error || 'Error al guardar', { duration: 4000, position: 'top-center' });
+      }
       throw new Error(result.error || 'Error al guardar');
     }
   }, [editingGame, loadGames, closeModal]);
@@ -127,9 +139,16 @@ export default function GamesPage() {
     
     const result = await deleteGame(id);
     if (result.success) {
+      toast.success('Juego eliminado exitosamente', {
+        duration: 3000,
+        position: 'top-center',
+      });
       await loadGames();
     } else {
-      alert(result.error || 'Error al eliminar');
+      toast.error(result.error || 'Error al eliminar', {
+        duration: 4000,
+        position: 'top-center',
+      });
     }
   }, [loadGames]);
 
