@@ -50,9 +50,28 @@ export async function createGame(data: z.infer<typeof gameSchema>) {
   const { title, category, image } = validatedFields.data;
 
   try {
+    // Generar ID único basado en el título
+    const baseSlug = title
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Eliminar diacríticos
+      .replace(/[^a-z0-9]+/g, '-') // Reemplazar caracteres no alfanuméricos con guiones
+      .replace(/^-+|-+$/g, ''); // Eliminar guiones al inicio y final
+    
+    // Verificar si existe un juego con este slug
+    let gameId = baseSlug;
+    let counter = 1;
+    let exists = await sql`SELECT id FROM games WHERE id = ${gameId}`;
+    
+    while (exists.length > 0) {
+      gameId = `${baseSlug}-${counter}`;
+      exists = await sql`SELECT id FROM games WHERE id = ${gameId}`;
+      counter++;
+    }
+
     await sql`
-      INSERT INTO games (title, category, image)
-      VALUES (${title}, ${category}, ${image})
+      INSERT INTO games (id, title, category, image)
+      VALUES (${gameId}, ${title}, ${category}, ${image})
     `;
     revalidatePath('/dashboard/games');
     return { success: true, message: 'Juego creado exitosamente' };

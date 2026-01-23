@@ -53,6 +53,25 @@ export async function createCategory(data: z.infer<typeof categorySchema>) {
   const { name, description, icon, gameIds } = validatedFields.data;
 
   try {
+    // Generar ID único basado en el nombre
+    const baseSlug = name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Eliminar diacríticos
+      .replace(/[^a-z0-9]+/g, '-') // Reemplazar caracteres no alfanuméricos con guiones
+      .replace(/^-+|-+$/g, ''); // Eliminar guiones al inicio y final
+    
+    // Verificar si existe una categoría con este slug
+    let categoryId = baseSlug;
+    let counter = 1;
+    let exists = await sql`SELECT id FROM categories WHERE id = ${categoryId}`;
+    
+    while (exists.length > 0) {
+      categoryId = `${baseSlug}-${counter}`;
+      exists = await sql`SELECT id FROM categories WHERE id = ${categoryId}`;
+      counter++;
+    }
+
     // Obtener el máximo display_order actual
     const maxOrder = await sql`
       SELECT COALESCE(MAX(display_order), 0) as max_order FROM categories
@@ -60,13 +79,10 @@ export async function createCategory(data: z.infer<typeof categorySchema>) {
     const nextOrder = maxOrder[0].max_order + 1;
 
     // Crear la categoría
-    const result = await sql`
-      INSERT INTO categories (name, description, icon, display_order)
-      VALUES (${name}, ${description}, ${icon}, ${nextOrder})
-      RETURNING id
+    await sql`
+      INSERT INTO categories (id, name, description, icon, display_order)
+      VALUES (${categoryId}, ${name}, ${description}, ${icon}, ${nextOrder})
     `;
-    
-    const categoryId = result[0].id;
 
     // Si hay juegos, asociarlos
     if (gameIds && gameIds.length > 0) {

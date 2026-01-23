@@ -67,22 +67,37 @@ export async function createService(data: z.infer<typeof serviceSchema>) {
 
     const { title, category_id, price, image, description, service_points, priceComponents, gameIds } = validatedFields.data;
 
-    // Obtener el máximo display_order actual para esta categoría
+    // Generar ID único basado en el título
+    const baseSlug = title
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Eliminar diacríticos
+      .replace(/[^a-z0-9]+/g, '-') // Reemplazar caracteres no alfanuméricos con guiones
+      .replace(/^-+|-+$/g, ''); // Eliminar guiones al inicio y final
+    
+    // Verificar si existe un servicio con este slug
+    let serviceId = baseSlug;
+    let counter = 1;
+    let exists = await sql`SELECT id FROM services WHERE id = ${serviceId}`;
+    
+    while (exists.length > 0) {
+      serviceId = `${baseSlug}-${counter}`;
+      exists = await sql`SELECT id FROM services WHERE id = ${serviceId}`;
+      counter++;
+    }
+
+    // Obtener el máximo display_order actual (global)
     const maxOrder = await sql`
       SELECT COALESCE(MAX(display_order), 0) as max_order 
-      FROM services 
-      WHERE category_id = ${category_id}
+      FROM services
     `;
     const nextOrder = maxOrder[0].max_order + 1;
 
     // Crear el servicio
-    const result = await sql`
-      INSERT INTO services (title, category_id, price, image, description, service_points, display_order)
-      VALUES (${title}, ${category_id}, ${price}, ${image}, ${description}, ${service_points || []}, ${nextOrder})
-      RETURNING id
+    await sql`
+      INSERT INTO services (id, title, category_id, price, image, description, service_points, display_order)
+      VALUES (${serviceId}, ${title}, ${category_id}, ${price}, ${image}, ${description}, ${service_points || []}, ${nextOrder})
     `;
-    
-    const serviceId = result[0].id;
 
     // Si hay componentes de precio, crearlos
     if (priceComponents && priceComponents.length > 0) {
