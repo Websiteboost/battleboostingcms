@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Settings, AlertTriangle, Trash2 } from 'lucide-react';
+import { AdminGuard } from '@/components/guards/AdminGuard';
 
 interface SiteConfig {
   logo_text: string;
@@ -147,14 +148,15 @@ export default function ConfigPage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold neon-text">Configuración del Sitio</h1>
-        <p className="text-sm sm:text-base text-gray-400 mt-1">
-          Gestiona la configuración general del sitio web
-        </p>
-      </div>
+    <AdminGuard>
+      <div className="space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold neon-text">Configuración del Sitio</h1>
+          <p className="text-sm sm:text-base text-gray-400 mt-1">
+            Gestiona la configuración general del sitio web
+          </p>
+        </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Sección Home */}
@@ -508,6 +510,7 @@ export default function ConfigPage() {
           </div>
         </div>
       </Modal>
-    </div>
+      </div>
+    </AdminGuard>
   );
 }

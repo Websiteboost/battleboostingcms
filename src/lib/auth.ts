@@ -49,11 +49,7 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          // Solo permitir administradores
-          if (user.role !== 'admin') {
-            return null;
-          }
-
+          // Permitir tanto admin como user
           return {
             id: user.id,
             email: user.email,

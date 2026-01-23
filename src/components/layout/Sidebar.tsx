@@ -13,19 +13,21 @@ import {
   X,
   Settings,
   HelpCircle,
-  FileText
+  FileText,
+  UserCog
 } from 'lucide-react';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 
 const navItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Juegos', href: '/dashboard/games', icon: Gamepad2 },
-  { name: 'Categorías', href: '/dashboard/categories', icon: Folder },
-  { name: 'Servicios', href: '/dashboard/services', icon: Package },
-  { name: 'FAQ', href: '/dashboard/accordion', icon: HelpCircle },
-  { name: 'Políticas', href: '/dashboard/policies', icon: FileText },
-  { name: 'Imágenes', href: '/dashboard/images', icon: Image },
-  { name: 'Configuración', href: '/dashboard/config', icon: Settings },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, adminOnly: false },
+  { name: 'Juegos', href: '/dashboard/games', icon: Gamepad2, adminOnly: false },
+  { name: 'Categorías', href: '/dashboard/categories', icon: Folder, adminOnly: false },
+  { name: 'Servicios', href: '/dashboard/services', icon: Package, adminOnly: false },
+  { name: 'FAQ', href: '/dashboard/accordion', icon: HelpCircle, adminOnly: false },
+  { name: 'Políticas', href: '/dashboard/policies', icon: FileText, adminOnly: false },
+  { name: 'Imágenes', href: '/dashboard/images', icon: Image, adminOnly: false },
+  { name: 'Configuración', href: '/dashboard/config', icon: Settings, adminOnly: true },
+  { name: 'Cuenta', href: '/dashboard/cuenta', icon: UserCog, adminOnly: true },
 ];
 
 interface SidebarProps {
@@ -35,6 +37,8 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === 'admin';
 
   useEffect(() => {
     if (isOpen) {
@@ -90,7 +94,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 p-3 lg:p-4 space-y-1 lg:space-y-2 overflow-y-auto">
-          {navItems.map((item) => {
+          {navItems
+            .filter(item => !item.adminOnly || isAdmin)
+            .map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
             

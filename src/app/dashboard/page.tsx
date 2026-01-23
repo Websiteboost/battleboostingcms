@@ -25,6 +25,7 @@ async function getStats() {
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   const stats = await getStats();
+  const isAdmin = (session?.user as any)?.role === 'admin';
 
   const statCards = [
     { title: 'Juegos', value: stats.games, icon: Gamepad2, color: 'purple' },
@@ -65,7 +66,7 @@ export default async function DashboardPage() {
       {/* Quick Actions */}
       <Card className="p-4 sm:p-6">
         <h2 className="text-xl sm:text-2xl font-bold mb-4">Acciones Rápidas</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3 sm:gap-4`}>
           <a
             href="/dashboard/games"
             className="p-3 sm:p-4 rounded-lg bg-cyber-purple/10 hover:bg-cyber-purple/20 border border-cyber-purple/30 transition-all"
@@ -94,13 +95,15 @@ export default async function DashboardPage() {
             <Image className="mb-2" size={20} />
             <p className="font-medium text-sm sm:text-base">Gestionar Imágenes</p>
           </a>
-          <a
-            href="/dashboard/config"
-            className="p-3 sm:p-4 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 transition-all"
-          >
-            <Settings className="mb-2" size={20} />
-            <p className="font-medium text-sm sm:text-base">Configuración</p>
-          </a>
+          {isAdmin && (
+            <a
+              href="/dashboard/config"
+              className="p-3 sm:p-4 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 transition-all"
+            >
+              <Settings className="mb-2" size={20} />
+              <p className="font-medium text-sm sm:text-base">Configuración</p>
+            </a>
+          )}
         </div>
       </Card>
     </div>
