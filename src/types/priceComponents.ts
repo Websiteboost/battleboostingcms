@@ -5,11 +5,36 @@ export type PriceComponentType = 'bar' | 'box' | 'custom' | 'selectors' | 'addit
 // ============================================================================
 // INCREMENTAL BAR (type: "bar")
 // ============================================================================
+
+// Breakpoint individual para modo avanzado
+export interface BarBreakpoint {
+  initValue: number;      // Valor inicial de este rango
+  finalValue: number;     // Valor final de este rango
+  step: number;           // Incremento entre valores para este rango
+}
+
+// Rango por defecto a mostrar en el cliente
+export interface BarDefaultRange {
+  start: number;          // Posición inicial del selector izquierdo
+  end: number;            // Posición inicial del selector derecho
+}
+
 export interface BarConfig {
-  initValue: number;      // Valor inicial del rango
-  finalValue: number;     // Valor final del rango
-  step: number;           // Incremento entre valores
+  // Campos comunes a ambos modos
+  progressValue: number;  // Incremento visual de la barra (ej: 1, 5, 10). Por defecto: 1
+  defaultRange: BarDefaultRange;  // Valores por defecto a mostrar en el rango
   label?: string;         // Etiqueta descriptiva (opcional)
+  
+  // Modo de operación
+  mode: 'simple' | 'breakpoints';  // simple: 1 rango | breakpoints: múltiples rangos
+  
+  // Campos para modo "simple" (sin breakpoints)
+  initValue?: number;     // Valor inicial del rango (solo modo simple)
+  finalValue?: number;    // Valor final del rango (solo modo simple)
+  step?: number;          // Incremento entre valores (solo modo simple)
+  
+  // Campos para modo "breakpoints" (múltiples rangos)
+  breakpoints?: BarBreakpoint[];  // Array de rangos escalonados (solo modo breakpoints)
 }
 
 // ============================================================================

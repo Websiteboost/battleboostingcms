@@ -126,6 +126,14 @@ export async function resetDatabase() {
 
     await sql`INSERT INTO site_config (id,logo_text,home_title,home_subtitle,home_categories,accordion_title,footer_payment_title,footer_copyright,disclaimer,discord_link,discord_work_us,payment_disclaimer) VALUES (1,'BATTLE BOOSTING','BattleBoosting Gaming Services','Your trusted platform for professional gaming services',ARRAY['MMO Boosting','Ranked Services','Power Leveling','Achievement Hunting'],'Frequently Asked Questions','Accepted payment methods','© 2025 BattleBoosting. All rights reserved.','All services are provided for entertainment purposes only. We are not affiliated with any game developers or publishers.','https://discord.gg/battleboost','https://discord.gg/battleboost-jobs','After completing your payment, please create a ticket in our Discord server to start your order. Join BattleBoost Discord community for support!')`;
 
+    // Agregar progressValue y mode a componentes bar existentes
+    await sql`UPDATE service_prices SET config = config || '{"progressValue": 1, "mode": "simple"}'::jsonb WHERE type = 'bar' AND NOT (config ? 'progressValue')`;
+    
+    // Agregar defaultRange a componentes bar existentes
+    await sql`UPDATE service_prices SET config = jsonb_set(config, '{defaultRange}', jsonb_build_object('start', COALESCE((config->>'initValue')::numeric, 1), 'end', COALESCE((config->>'finalValue')::numeric, 50))) WHERE type = 'bar' AND NOT (config ? 'defaultRange')`;
+    
+    await sql`CREATE INDEX IF NOT EXISTS idx_service_prices_bar_mode ON service_prices ((config->>'mode')) WHERE type = 'bar'`;
+
     revalidatePath('/dashboard');
     return { success: true, message: 'Base de datos reiniciada exitosamente' };
   } catch (error) {

@@ -51,7 +51,15 @@ interface ServiceFormProps {
 const getDefaultConfig = (type: PriceComponentType): any => {
   switch (type) {
     case 'bar':
-      return { initValue: 1, finalValue: 50, step: 1, label: 'Select Range' } as BarConfig;
+      return { 
+        mode: 'simple', 
+        progressValue: 1,
+        defaultRange: { start: 1, end: 50 },
+        initValue: 1, 
+        finalValue: 50, 
+        step: 1, 
+        label: 'Select Range' 
+      } as BarConfig;
     case 'box':
       return { options: [{ label: '', value: 0 }] } as BoxConfig;
     case 'selectors':
