@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Mail, Lock, User, UserPlus } from 'lucide-react';
-import { getUsers, updateUserEmail, updateUserPassword, createUser } from '@/app/actions/users';
+import { Modal } from '@/components/ui/Modal';
+import { Mail, Lock, User, UserPlus, Trash2 } from 'lucide-react';
+import { getUsers, updateUserEmail, updateUserPassword, createUser, deleteUser } from '@/app/actions/users';
 import toast from 'react-hot-toast';
 import { AdminGuard } from '@/components/guards/AdminGuard';
 
@@ -31,6 +32,11 @@ export default function CuentaPage() {
   const [createPassword, setCreatePassword] = useState('');
   const [createRole, setCreateRole] = useState<'admin' | 'user'>('user');
   const [creating, setCreating] = useState(false);
+
+  // Estados para eliminar usuario
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -145,6 +151,33 @@ export default function CuentaPage() {
     setCreateEmail('');
     setCreatePassword('');
     setCreateRole('user');
+  };
+
+  const handleDeleteClick = (user: User) => {
+    setUserToDelete(user);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    setDeleting(true);
+    const result = await deleteUser(userToDelete.id);
+    
+    if (result.success) {
+      toast.success(result.message || 'Usuario eliminado exitosamente');
+      setDeleteModalOpen(false);
+      setUserToDelete(null);
+      await loadUsers();
+    } else {
+      toast.error(result.error || 'Error al eliminar usuario');
+    }
+    setDeleting(false);
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalOpen(false);
+    setUserToDelete(null);
   };
 
   if (loading) {
@@ -270,6 +303,14 @@ export default function CuentaPage() {
                         </p>
                       </div>
                     </div>
+                    <Button
+                      onClick={() => handleDeleteClick(user)}
+                      variant="danger"
+                      className="px-3 py-2 flex items-center gap-2"
+                    >
+                      <Trash2 size={16} />
+                      <span className="hidden sm:inline">Eliminar</span>
+                    </Button>
                   </div>
 
                   {/* Email */}
@@ -377,6 +418,48 @@ export default function CuentaPage() {
           )}
         </div>
       </Card>
+
+      {/* Modal de confirmación de eliminación */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={handleCancelDelete}
+        title="⚠️ Confirmar Eliminación"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-red-950/30 border border-red-500/50 rounded-lg">
+            <p className="text-white font-semibold mb-2">¿Estás seguro?</p>
+            <p className="text-sm text-gray-300">
+              Estás a punto de eliminar la cuenta de:
+            </p>
+            <p className="text-sm text-white font-mono mt-2 bg-slate-900/50 px-3 py-2 rounded">
+              {userToDelete?.email}
+            </p>
+            <p className="text-sm text-gray-400 mt-2">
+              Esta acción no se puede deshacer.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={handleCancelDelete}
+              variant="secondary"
+              disabled={deleting}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleDeleteUser}
+              variant="danger"
+              disabled={deleting}
+              className="w-full sm:flex-1 flex items-center justify-center gap-2"
+            >
+              <Trash2 size={16} />
+              {deleting ? 'Eliminando...' : 'Confirmar Eliminación'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
       </div>
     </AdminGuard>
   );

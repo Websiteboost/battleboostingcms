@@ -142,3 +142,30 @@ export async function createUser(email: string, password: string, role: 'admin' 
     return { success: false, error: 'Error al crear usuario' };
   }
 }
+
+export async function deleteUser(userId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session || (session.user as any).role !== 'admin') {
+    return { success: false, error: 'No autorizado' };
+  }
+
+  try {
+    // Verificar que no sea el usuario actual
+    const currentUserId = (session.user as any).id;
+    if (userId === currentUserId) {
+      return { success: false, error: 'No puedes eliminar tu propia cuenta' };
+    }
+
+    // Eliminar usuario
+    await sql`
+      DELETE FROM users 
+      WHERE id = ${userId}
+    `;
+
+    revalidatePath('/dashboard/cuenta');
+    return { success: true, message: 'Usuario eliminado exitosamente' };
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    return { success: false, error: 'Error al eliminar usuario' };
+  }
+}
