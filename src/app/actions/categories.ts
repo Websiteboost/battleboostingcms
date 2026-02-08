@@ -6,7 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { Category } from "@/types";
-import { replaceCategoryGames } from "./categoryGames";
+import { replaceCategoryGames, getCategoryGames } from "./categoryGames";
 
 const categorySchema = z.object({
   id: z.string().optional(),
@@ -211,5 +211,76 @@ export async function reorderCategories(items: { id: string; display_order: numb
   } catch (error) {
     console.error('Error reordering categories:', error);
     return { success: false, error: 'Error al reordenar categorías' };
+  }
+}
+
+export async function duplicateCategory(categoryId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return { success: false, error: 'No autorizado' };
+  }
+
+  try {
+    // Obtener la categoría original
+    const categories = await sql`
+      SELECT * FROM categories WHERE id = ${categoryId}
+    `;
+
+    if (categories.length === 0) {
+      return { success: false, error: 'Categoría no encontrada' };
+    }
+
+    const originalCategory = categories[0];
+
+    // Obtener los juegos asociados
+    const gameIds = await getCategoryGames(categoryId);
+
+    // Generar un nuevo ID único
+    const baseName = `${originalCategory.name} (Copia)`;
+    const baseSlug = baseName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    
+    let newCategoryId = baseSlug;
+    let counter = 1;
+    let exists = await sql`SELECT id FROM categories WHERE id = ${newCategoryId}`;
+    
+    while (exists.length > 0) {
+      newCategoryId = `${baseSlug}-${counter}`;
+      exists = await sql`SELECT id FROM categories WHERE id = ${newCategoryId}`;
+      counter++;
+    }
+
+    // Obtener el máximo display_order actual
+    const maxOrder = await sql`
+      SELECT COALESCE(MAX(display_order), 0) as max_order FROM categories
+    `;
+    const nextOrder = maxOrder[0].max_order + 1;
+
+    // Crear la nueva categoría
+    await sql`
+      INSERT INTO categories (id, name, description, icon, display_order)
+      VALUES (
+        ${newCategoryId}, 
+        ${baseName}, 
+        ${originalCategory.description}, 
+        ${originalCategory.icon}, 
+        ${nextOrder}
+      )
+    `;
+
+    // Copiar las relaciones con juegos
+    if (gameIds && gameIds.length > 0) {
+      await replaceCategoryGames(newCategoryId, gameIds);
+    }
+
+    revalidatePath('/dashboard/categories');
+    return { success: true, message: 'Categoría duplicada exitosamente' };
+  } catch (error) {
+    console.error('Error duplicating category:', error);
+    return { success: false, error: 'Error al duplicar la categoría' };
   }
 }

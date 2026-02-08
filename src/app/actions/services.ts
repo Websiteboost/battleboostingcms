@@ -6,8 +6,8 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { Service } from "@/types";
-import { replaceServicePriceComponents } from "./servicePrices";
-import { replaceServiceGames } from "./serviceGames";
+import { replaceServicePriceComponents, getServicePriceComponents } from "./servicePrices";
+import { replaceServiceGames, getServiceGames } from "./serviceGames";
 import { del } from '@vercel/blob';
 
 const serviceSchema = z.object({
@@ -248,5 +248,91 @@ export async function reorderServices(items: { id: string; display_order: number
   } catch (error) {
     console.error('Error reordering services:', error);
     return { success: false, error: 'Error al reordenar servicios' };
+  }
+}
+
+export async function duplicateService(serviceId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return { success: false, error: 'No autorizado' };
+  }
+
+  try {
+    // Obtener el servicio original
+    const services = await sql`
+      SELECT * FROM services WHERE id = ${serviceId}
+    `;
+
+    if (services.length === 0) {
+      return { success: false, error: 'Servicio no encontrado' };
+    }
+
+    const originalService = services[0];
+
+    // Obtener los componentes de precio y juegos asociados
+    const [priceComponents, gameIds] = await Promise.all([
+      getServicePriceComponents(serviceId),
+      getServiceGames(serviceId)
+    ]);
+
+    // Generar un nuevo ID único
+    const baseName = `${originalService.title} (Copia)`;
+    const baseSlug = baseName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    
+    let newServiceId = baseSlug;
+    let counter = 1;
+    let exists = await sql`SELECT id FROM services WHERE id = ${newServiceId}`;
+    
+    while (exists.length > 0) {
+      newServiceId = `${baseSlug}-${counter}`;
+      exists = await sql`SELECT id FROM services WHERE id = ${newServiceId}`;
+      counter++;
+    }
+
+    // Obtener el máximo display_order actual
+    const maxOrder = await sql`
+      SELECT COALESCE(MAX(display_order), 0) as max_order FROM services
+    `;
+    const nextOrder = maxOrder[0].max_order + 1;
+
+    // Crear el nuevo servicio
+    await sql`
+      INSERT INTO services (id, title, category_id, price, image, description, service_points, display_order)
+      VALUES (
+        ${newServiceId}, 
+        ${baseName}, 
+        ${originalService.category_id}, 
+        ${originalService.price}, 
+        ${originalService.image}, 
+        ${originalService.description}, 
+        ${originalService.service_points || []}, 
+        ${nextOrder}
+      )
+    `;
+
+    // Copiar los componentes de precio
+    if (priceComponents && priceComponents.length > 0) {
+      const componentsWithoutId = priceComponents.map(pc => ({
+        type: pc.type,
+        config: pc.config
+      }));
+      await replaceServicePriceComponents(newServiceId, componentsWithoutId);
+    }
+
+    // Copiar las relaciones con juegos
+    if (gameIds && gameIds.length > 0) {
+      await replaceServiceGames(newServiceId, gameIds);
+    }
+
+    revalidatePath('/dashboard/services');
+    return { success: true, message: 'Servicio duplicado exitosamente' };
+  } catch (error) {
+    console.error('Error duplicating service:', error);
+    return { success: false, error: 'Error al duplicar el servicio' };
   }
 }

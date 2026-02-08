@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useState, useCallback, memo } from 'react';
-import { getCategories, deleteCategory, createCategory, updateCategory, reorderCategories } from '@/app/actions/categories';
+import { getCategories, deleteCategory, createCategory, updateCategory, reorderCategories, duplicateCategory } from '@/app/actions/categories';
 import { getGames } from '@/app/actions/games';
 import { getCategoryGames } from '@/app/actions/categoryGames';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { CategoryForm } from '@/components/forms/CategoryForm';
-import { Pencil, Trash2, Plus, GripVertical } from 'lucide-react';
+import { Pencil, Trash2, Plus, GripVertical, Copy } from 'lucide-react';
 import type { Category, Game } from '@/types';
 import * as Icons from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -18,6 +18,7 @@ const CategoryCard = memo(({
   category, 
   onEdit, 
   onDelete,
+  onDuplicate,
   displayOrder,
   onDragStart,
   onDragEnd,
@@ -29,6 +30,7 @@ const CategoryCard = memo(({
   category: Category;
   onEdit: () => void;
   onDelete: () => void;
+  onDuplicate: () => void;
   displayOrder: number;
   onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
   onDragEnd: (e: React.DragEvent<HTMLDivElement>) => void;
@@ -51,6 +53,15 @@ const CategoryCard = memo(({
         onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
+        {/* Botón de copiar en la esquina superior izquierda */}
+        <button
+          onClick={onDuplicate}
+          className="absolute top-2 left-2 z-10 p-1.5 sm:p-2 bg-slate-700/80 hover:bg-cyber-purple/80 backdrop-blur-sm rounded-full transition-all duration-200 hover:scale-110 active:scale-95"
+          title="Duplicar categoría"
+        >
+          <Copy className="w-3 h-3 sm:w-4 sm:h-4 text-gray-300 hover:text-white" />
+        </button>
+
         {/* Badge de orden con drag handle */}
         <div className="absolute top-2 right-2 flex items-center gap-1 bg-slate-700/80 backdrop-blur-sm rounded-full px-2 py-1">
           <div title="Arrastra para reordenar">
@@ -196,6 +207,26 @@ export default function CategoriesPage() {
     }
   }, [loadData]);
 
+  const handleDuplicate = useCallback(async (id: string, name: string) => {
+    if (!confirm(`¿Deseas duplicar la categoría "${name}"?`)) return;
+    
+    toast.loading('Duplicando categoría...', { duration: 1000, position: 'top-center' });
+    
+    const result = await duplicateCategory(id);
+    if (result.success) {
+      toast.success('Categoría duplicada exitosamente', {
+        duration: 3000,
+        position: 'top-center',
+      });
+      await loadData();
+    } else {
+      toast.error(result.error || 'Error al duplicar', {
+        duration: 4000,
+        position: 'top-center',
+      });
+    }
+  }, [loadData]);
+
   // Drag and Drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
@@ -304,6 +335,7 @@ export default function CategoriesPage() {
               displayOrder={(category as any).display_order || index + 1}
               onEdit={() => openEditModal(category)}
               onDelete={() => handleDelete(category.id, category.name)}
+              onDuplicate={() => handleDuplicate(category.id, category.name)}
               onDragStart={(e) => handleDragStart(e, index)}
               onDragEnd={handleDragEnd}
               onDragOver={(e) => handleDragOver(e, index)}
