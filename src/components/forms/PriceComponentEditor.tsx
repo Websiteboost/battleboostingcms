@@ -430,8 +430,8 @@ export const SelectorsEditor = memo(({ config, onChange }: SelectorsEditorProps)
     <div className="space-y-4 p-4 bg-slate-800/30 rounded-lg border border-cyber-pink/30">
       <h4 className="text-sm font-medium text-cyber-pink">Selectores Personalizados (Dropdowns)</h4>
       
-      {selectors.map(([title, options]) => (
-        <div key={title} className="space-y-3 p-3 bg-slate-900/50 rounded-lg border border-slate-700">
+      {selectors.map(([title, options], selectorIndex) => (
+        <div key={selectorIndex} className="space-y-3 p-3 bg-slate-900/50 rounded-lg border border-slate-700">
           <div className="flex gap-2 items-end">
             <Input
               label="Título del Selector"
