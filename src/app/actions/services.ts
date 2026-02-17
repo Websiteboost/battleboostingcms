@@ -43,7 +43,7 @@ export async function getServices() {
 
 export async function createService(data: z.infer<typeof serviceSchema>) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 
@@ -119,7 +119,7 @@ export async function createService(data: z.infer<typeof serviceSchema>) {
 
 export async function updateService(data: z.infer<typeof serviceSchema>) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 
@@ -175,7 +175,7 @@ export async function updateService(data: z.infer<typeof serviceSchema>) {
 
 export async function deleteService(id: string) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 
@@ -219,7 +219,7 @@ export async function deleteService(id: string) {
 
 export async function reorderServices(items: { id: string; display_order: number }[]) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 

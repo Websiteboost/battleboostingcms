@@ -2,6 +2,8 @@
 
 import { sql } from '@/lib/db';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 const accordionSchema = z.object({
   title: z.string().min(1, 'El título es requerido'),
@@ -32,6 +34,11 @@ export async function getAccordionItems() {
 }
 
 export async function createAccordionItem(data: z.infer<typeof accordionSchema>) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return { success: false, error: 'No autorizado' };
+  }
+
   try {
     const validatedData = accordionSchema.safeParse(data);
     
@@ -87,6 +94,11 @@ export async function createAccordionItem(data: z.infer<typeof accordionSchema>)
 }
 
 export async function updateAccordionItem(data: z.infer<typeof accordionSchema> & { id: string }) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return { success: false, error: 'No autorizado' };
+  }
+
   try {
     const { id, ...rest } = data;
     
@@ -164,6 +176,11 @@ export async function updateAccordionItem(data: z.infer<typeof accordionSchema> 
 }
 
 export async function deleteAccordionItem(id: string) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return { success: false, error: 'No autorizado' };
+  }
+
   try {
     // Obtener el orden del item a eliminar
     const itemToDelete = await sql`
@@ -199,6 +216,11 @@ export async function deleteAccordionItem(id: string) {
 }
 
 export async function reorderAccordionItems(items: { id: string; display_order: number }[]) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return { success: false, error: 'No autorizado' };
+  }
+
   try {
     // Actualizar el orden de todos los items en una transacción
     // Para evitar conflictos, primero establecemos todos a valores negativos temporales

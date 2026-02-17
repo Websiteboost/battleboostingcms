@@ -29,7 +29,7 @@ export async function getGames() {
 
 export async function createGame(data: z.infer<typeof gameSchema>) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 
@@ -83,7 +83,7 @@ export async function createGame(data: z.infer<typeof gameSchema>) {
 
 export async function updateGame(data: z.infer<typeof gameSchema>) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 
@@ -123,7 +123,7 @@ export async function updateGame(data: z.infer<typeof gameSchema>) {
 
 export async function deleteGame(id: string) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 

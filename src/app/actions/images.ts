@@ -8,7 +8,7 @@ import { sql } from '@/lib/db';
 
 export async function uploadImage(formData: FormData) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 
@@ -69,7 +69,7 @@ export async function uploadImage(formData: FormData) {
 
 export async function deleteImage(url: string) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 
@@ -120,7 +120,7 @@ export async function listImages() {
 
 export async function deleteAllImages() {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 

@@ -32,7 +32,7 @@ export async function getCategories() {
 
 export async function createCategory(data: z.infer<typeof categorySchema>) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 
@@ -99,7 +99,7 @@ export async function createCategory(data: z.infer<typeof categorySchema>) {
 
 export async function updateCategory(data: z.infer<typeof categorySchema>) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 
@@ -146,7 +146,7 @@ export async function updateCategory(data: z.infer<typeof categorySchema>) {
 
 export async function deleteCategory(id: string) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 
@@ -182,7 +182,7 @@ export async function deleteCategory(id: string) {
 
 export async function reorderCategories(items: { id: string; display_order: number }[]) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as any).role !== 'admin') {
+  if (!session) {
     return { success: false, error: 'No autorizado' };
   }
 
