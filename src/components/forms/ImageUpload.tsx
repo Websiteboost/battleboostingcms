@@ -12,7 +12,7 @@ interface ImageUploadProps {
 
 export const ImageUpload = memo(({ 
   onUpload, 
-  maxSize = 5,
+  maxSize = 1, // Límite de 1MB por defecto para evitar el error de body exceeded 1MB
   accept = 'image/*'
 }: ImageUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -31,7 +31,13 @@ export const ImageUpload = memo(({
     // Validar tamaño
     const sizeMB = file.size / (1024 * 1024);
     if (sizeMB > maxSize) {
-      return `La imagen no debe superar ${maxSize}MB`;
+      return `La imagen no debe superar ${maxSize}MB (actual: ${sizeMB.toFixed(2)}MB)`;
+    }
+
+    // Advertencia extra: el FormData añade overhead (~2-5%), así que validamos con margen
+    const estimatedFormDataSize = file.size * 1.05; // 5% overhead aprox
+    if (estimatedFormDataSize > 1024 * 1024) {
+      return `La imagen es demasiado grande. El tamaño máximo permitido es 1MB incluyendo metadatos`;
     }
 
     return null;
@@ -97,7 +103,24 @@ export const ImageUpload = memo(({
         fileInputRef.current.value = '';
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al subir la imagen');
+      // Mejorar el manejo de errores con mensajes más específicos
+      let errorMessage = 'Error al subir la imagen';
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        
+        // Verificar si es un error de límite de tamaño
+        if (err.message.includes('1MB') || err.message.includes('exceeded') || err.message.includes('too large')) {
+          errorMessage = 'La imagen excede el límite de 1MB. Por favor, reduce el tamaño de la imagen o usa una herramienta de compresión.';
+        }
+        // Verificar si es un error de servidor genérico
+        else if (err.message.includes('unexpected') || err.message.includes('server')) {
+          errorMessage = 'Error inesperado del servidor. Verifica que la imagen sea válida y no exceda 1MB.';
+        }
+      }
+      
+      setError(errorMessage);
+      console.error('Upload error:', err);
     } finally {
       setUploading(false);
     }

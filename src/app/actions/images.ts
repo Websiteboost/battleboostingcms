@@ -19,6 +19,20 @@ export async function uploadImage(formData: FormData) {
       return { success: false, error: 'No se ha proporcionado un archivo' };
     }
 
+    // Validar tamaño del archivo (1MB = 1048576 bytes)
+    const MAX_FILE_SIZE = 1024 * 1024; // 1MB
+    if (file.size > MAX_FILE_SIZE) {
+      return { 
+        success: false, 
+        error: `La imagen es demasiado grande (${(file.size / 1024 / 1024).toFixed(2)}MB). El tamaño máximo permitido es 1MB.` 
+      };
+    }
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      return { success: false, error: 'El archivo debe ser una imagen válida' };
+    }
+
     const blob = await put(file.name, file, {
       access: 'public',
     });
@@ -27,7 +41,29 @@ export async function uploadImage(formData: FormData) {
     return { success: true, data: { url: blob.url, filename: file.name } };
   } catch (error) {
     console.error('Error uploading image:', error);
-    return { success: false, error: 'Error al subir la imagen' };
+    
+    // Manejo de errores más específico
+    let errorMessage = 'Error al subir la imagen';
+    
+    if (error instanceof Error) {
+      // Error de Next.js por body excedido
+      if (error.message.includes('body') && error.message.includes('1MB')) {
+        errorMessage = 'La imagen excede el límite de 1MB permitido por el servidor.';
+      }
+      // Error de red o timeout
+      else if (error.message.includes('fetch') || error.message.includes('network')) {
+        errorMessage = 'Error de conexión. Por favor, intenta nuevamente.';
+      }
+      // Error de Vercel Blob
+      else if (error.message.includes('blob') || error.message.includes('storage')) {
+        errorMessage = 'Error al guardar la imagen en el almacenamiento.';
+      }
+      else {
+        errorMessage = `Error: ${error.message}`;
+      }
+    }
+    
+    return { success: false, error: errorMessage };
   }
 }
 

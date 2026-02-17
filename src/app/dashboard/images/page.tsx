@@ -267,7 +267,7 @@ export default function ImagesPage() {
       >
         <ImageUpload
           onUpload={handleUpload}
-          maxSize={5}
+          maxSize={1}
         />
       </Modal>
     </div>
