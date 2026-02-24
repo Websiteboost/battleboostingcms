@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, memo } from 'react';
+import { useState, memo, useRef, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 
 const AVAILABLE_ICONS = [
@@ -17,14 +17,35 @@ const AVAILABLE_ICONS = [
   'Sparkles',
   'Star',
   'Rocket',
+  'Gamepad',
   'Gamepad2',
+  'Joystick',
   'Dice1',
   'Dice2',
   'Dice3',
   'Dice4',
   'Dice5',
   'Dice6',
-  
+  'Crosshair',
+  'Skull',
+  'Ghost',
+  'Bomb',
+  'Axe',
+  'BowArrow',
+  'Castle',
+  'ChessKnight',
+  'ChessPawn',
+  'Drama',
+  'Footprints',
+  'Radar',
+  'Radiation',
+  'Siren',
+  'Wand',
+  'Shuffle',
+  'MonitorPlay',
+  'PlayCircle',
+  'Workflow',
+
   // Usuarios & Social
   'Users',
   'User',
@@ -34,17 +55,29 @@ const AVAILABLE_ICONS = [
   'Heart',
   'MessageCircle',
   'MessageSquare',
-  
+  'ThumbsUp',
+  'Smile',
+  'PersonStanding',
+  'Share2',
+  'HandshakeIcon',
+
   // Acciones & Progreso
   'TrendingUp',
   'BarChart',
   'Activity',
-  'Zap',
-  'Bolt',
   'CircuitBoard',
   'Cpu',
   'HardDrive',
-  
+  'ArrowUp',
+  'ArrowUpRight',
+  'ChevronsUp',
+  'CheckCheck',
+  'ListChecks',
+  'CircleCheck',
+  'Focus',
+  'Scan',
+  'ScanLine',
+
   // Dinero & Comercio
   'DollarSign',
   'CreditCard',
@@ -53,7 +86,14 @@ const AVAILABLE_ICONS = [
   'Gift',
   'Package',
   'Box',
-  
+  'Gem',
+  'Coins',
+  'Banknote',
+  'Percent',
+  'BadgePlus',
+  'BadgeMinus',
+  'BadgeDollarSign',
+
   // Velocidad & Potencia
   'FastForward',
   'Gauge',
@@ -61,8 +101,11 @@ const AVAILABLE_ICONS = [
   'Power',
   'Battery',
   'BatteryCharging',
-  'Zap',
-  
+  'CloudLightning',
+  'Dumbbell',
+  'Infinity',
+  'Tornado',
+
   // Seguridad & Premium
   'Lock',
   'Unlock',
@@ -70,24 +113,50 @@ const AVAILABLE_ICONS = [
   'ShieldCheck',
   'ShieldAlert',
   'BadgeCheck',
-  'VerifiedIcon',
-  
+  'Fingerprint',
+  'Signal',
+
   // Diseño & Creatividad
   'Palette',
   'Brush',
   'Wand2',
-  'Sparkles',
   'Stars',
   'Eye',
-  
-  // Comunicación
+  'Diamond',
+  'Spade',
+  'Lightbulb',
+
+  // Comunicación & Streaming
   'Bell',
   'BellRing',
   'Mail',
   'Send',
   'Phone',
   'Headphones',
-  
+  'Mic',
+  'Video',
+  'Tv',
+  'Camera',
+  'Music',
+  'Volume2',
+  'Radio',
+
+  // Tech & Conectividad
+  'Monitor',
+  'Globe',
+  'Wifi',
+  'Server',
+  'Cloud',
+  'Bot',
+  'Hash',
+  'Settings',
+  'Settings2',
+  'SlidersHorizontal',
+  'Wrench',
+  'MousePointer2',
+  'Laptop',
+  'Smartphone',
+
   // Tiempo & Velocidad
   'Clock',
   'Timer',
@@ -95,7 +164,14 @@ const AVAILABLE_ICONS = [
   'Repeat',
   'RotateCw',
   'RefreshCw',
-  
+
+  // Logros & Aprendizaje
+  'Medal',
+  'GraduationCap',
+  'ExternalLink',
+  'Download',
+  'Upload',
+
   // Otros relevantes
   'Flag',
   'Mountain',
@@ -109,6 +185,9 @@ const AVAILABLE_ICONS = [
   'Hexagon',
   'Octagon',
   'Pentagon',
+  'Sun',
+  'Moon',
+  'CloudSun',
 ] as const;
 
 interface IconSelectorProps {
@@ -119,6 +198,18 @@ interface IconSelectorProps {
 
 export const IconSelector = memo(({ value, onChange, label = 'Icono' }: IconSelectorProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
 
   const handleSelect = (iconName: string) => {
     onChange(iconName);
@@ -128,7 +219,7 @@ export const IconSelector = memo(({ value, onChange, label = 'Icono' }: IconSele
   const SelectedIcon = value ? (Icons as any)[value] : null;
 
   return (
-    <div className="w-full relative">
+    <div ref={containerRef} className="w-full">
       <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1.5 sm:mb-2">
         {label}
       </label>
@@ -155,10 +246,10 @@ export const IconSelector = memo(({ value, onChange, label = 'Icono' }: IconSele
         />
       </button>
 
-      {/* Dropdown de iconos */}
+      {/* Panel de iconos — inline en el flujo para no salirse del contenedor */}
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full max-w-2xl bg-slate-800 border border-cyber-purple/50 rounded-lg shadow-xl p-3 max-h-96 overflow-y-auto">
-          <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
+        <div className="mt-2 w-full bg-slate-800 border border-cyber-purple/50 rounded-lg shadow-xl p-3 max-h-72 overflow-y-auto">
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
             {AVAILABLE_ICONS.map((iconName) => {
               const IconComponent = (Icons as any)[iconName];
               const isSelected = value === iconName;
@@ -168,27 +259,19 @@ export const IconSelector = memo(({ value, onChange, label = 'Icono' }: IconSele
                   key={iconName}
                   type="button"
                   onClick={() => handleSelect(iconName)}
-                  className={`p-3 rounded-lg border transition-all hover:scale-105 flex flex-col items-center gap-1 ${
+                  className={`p-2 rounded-lg border transition-all hover:scale-105 flex flex-col items-center gap-1 ${
                     isSelected
                       ? 'bg-cyber-purple/20 border-cyber-purple text-cyber-purple'
                       : 'bg-slate-700/50 border-slate-600 text-gray-300 hover:border-cyber-purple/50 hover:text-white'
                   }`}
                 >
-                  <IconComponent size={24} />
-                  <span className="text-xs truncate w-full text-center">{iconName}</span>
+                  <IconComponent size={20} />
+                  <span className="text-[10px] truncate w-full text-center">{iconName}</span>
                 </button>
               );
             })}
           </div>
         </div>
-      )}
-
-      {/* Overlay para cerrar */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setIsOpen(false)}
-        />
       )}
     </div>
   );
