@@ -1,6 +1,9 @@
 // Tipos para los componentes de precio dinámico basados en GUIA-COMPONENTES.txt
 
-export type PriceComponentType = 'bar' | 'box' | 'custom' | 'selectors' | 'additional' | 'boxtitle' | 'labeltitle';
+export type PriceComponentType = 'bar' | 'box' | 'custom' | 'selectors' | 'additional' | 'boxtitle' | 'labeltitle' | 'group';
+
+// All types except group — used for children inside a GroupConfig
+export type ChildComponentType = Exclude<PriceComponentType, 'group'>;
 
 // ============================================================================
 // INCREMENTAL BAR (type: "bar")
@@ -47,6 +50,8 @@ export interface BoxOption {
 
 export interface BoxConfig {
   options: BoxOption[];
+  showPrice?: boolean;   // Mostrar u ocultar el precio en el front (default: true)
+  style?: 'box' | 'pill'; // Estilo visual: caja cuadrada o píldora (default: 'box')
 }
 
 // ============================================================================
@@ -105,6 +110,24 @@ export interface LabelTitleConfig {
 }
 
 // ============================================================================
+// GROUP - Agrupador de componentes (type: "group")
+// ============================================================================
+export interface GroupChild {
+  type: ChildComponentType;    // No permite grupos anidados
+  config: PriceComponentConfig;
+  display_order?: number;
+  required?: boolean;
+  estimated_time?: number;     // Tiempo estimado en minutos (0 = no aplica)
+  discount_percent?: number;   // % de descuento sobre el aporte de este componente (0 = sin descuento)
+}
+
+export interface GroupConfig {
+  title: string;               // Título de la pestaña/acordeón en el front
+  collapseByDefault: boolean;  // Si arranca colapsado en el front
+  children: GroupChild[];      // Componentes hijos (guardados en client state)
+}
+
+// ============================================================================
 // TIPO UNION PARA TODAS LAS CONFIGURACIONES
 // ============================================================================
 export type PriceComponentConfig = 
@@ -114,7 +137,8 @@ export type PriceComponentConfig =
   | AdditionalConfig 
   | CustomConfig
   | BoxTitleConfig
-  | LabelTitleConfig;
+  | LabelTitleConfig
+  | GroupConfig;
 
 // ============================================================================
 // ESTRUCTURA COMPLETA DE UN COMPONENTE DE PRECIO
@@ -124,6 +148,11 @@ export interface PriceComponent {
   service_id: string;               // ID del servicio al que pertenece
   type: PriceComponentType;         // Tipo de componente
   config: PriceComponentConfig;     // Configuración específica del tipo
+  display_order?: number;           // Orden de visualización
+  required?: boolean;               // Si el componente es obligatorio de rellenar en el front
+  estimated_time?: number;          // Tiempo estimado en minutos (0 = no aplica)
+  discount_percent?: number;        // % de descuento sobre el aporte de este componente (0 = sin descuento)
+  group_id?: string | null;         // UUID del grupo padre (null = componente raíz)
   created_at?: string;              // Timestamp de creación
 }
 

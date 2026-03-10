@@ -1,18 +1,16 @@
 'use client';
 
-import { useEffect, useState, useCallback, memo } from 'react';
-import { getServices, deleteService, createService, updateService, reorderServices, duplicateService } from '@/app/actions/services';
+import { useEffect, useState, useCallback, memo, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { getServices, deleteService, createService, reorderServices, duplicateService } from '@/app/actions/services';
 import { getCategories } from '@/app/actions/categories';
 import { getGames } from '@/app/actions/games';
-import { getServicePriceComponents } from '@/app/actions/servicePrices';
-import { getServiceGames } from '@/app/actions/serviceGames';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { ServiceForm } from '@/components/forms/ServiceForm';
-import { Pencil, Trash2, Plus, Image as ImageIcon, GripVertical, Copy } from 'lucide-react';
+import { Pencil, Trash2, Plus, Image as ImageIcon, GripVertical, Copy, Loader2 } from 'lucide-react';
 import type { Service, Category, Game } from '@/types';
-import type { PriceComponent } from '@/types/priceComponents';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 
@@ -25,6 +23,7 @@ const ServiceCard = memo(({
   onEdit, 
   onDelete,
   onDuplicate,
+  isEditing,
   displayOrder,
   onDragStart,
   onDragEnd,
@@ -40,6 +39,7 @@ const ServiceCard = memo(({
   onEdit: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
+  isEditing: boolean;
   displayOrder: number;
   onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
   onDragEnd: (e: React.DragEvent<HTMLDivElement>) => void;
@@ -102,8 +102,11 @@ const ServiceCard = memo(({
               variant="secondary" 
               className="flex-1"
               onClick={onEdit}
+              disabled={isEditing}
             >
-              <Pencil size={16} />
+              {isEditing
+                ? <Loader2 size={16} className="animate-spin" />
+                : <Pencil size={16} />}
             </Button>
             <Button 
               variant="danger" 
@@ -122,12 +125,14 @@ const ServiceCard = memo(({
 ServiceCard.displayName = 'ServiceCard';
 
 export default function ServicesPage() {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingService, setEditingService] = useState<Service | null>(null);
   const [imageError, setImageError] = useState<Record<string, boolean>>({});
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -164,46 +169,27 @@ export default function ServicesPage() {
   }, [categories]);
 
   const openCreateModal = useCallback(() => {
-    setEditingService(null);
     setIsModalOpen(true);
   }, []);
 
-  const openEditModal = useCallback(async (service: Service) => {
-    setEditingService(service);
-    setIsModalOpen(true);
-    
-    // Cargar componentes de precio y juegos del servicio
-    try {
-      const [priceComponents, gameIds] = await Promise.all([
-        getServicePriceComponents(service.id),
-        getServiceGames(service.id)
-      ]);
-      setEditingService({
-        ...service,
-        priceComponents,
-        gameIds
-      } as any);
-    } catch (error) {
-      console.error('Error al cargar datos del servicio:', error);
-    }
-  }, []);
+  // Editar navega a la página dedicada (evita el modal pesado con todos los editores)
+  // rerender-transitions: useTransition mantiene isPending=true mientras carga la ruta
+  const openEditPage = useCallback((service: Service) => {
+    setEditingId(service.id);
+    startTransition(() => {
+      router.push(`/dashboard/services/${service.id}/edit`);
+    });
+  }, [router, startTransition]);
 
   const closeModal = useCallback(() => {
     setIsModalOpen(false);
-    setEditingService(null);
   }, []);
 
   const handleFormSubmit = useCallback(async (formData: any) => {
-    const data = editingService 
-      ? { ...formData, id: editingService.id }
-      : formData;
-
-    const result = editingService
-      ? await updateService(data)
-      : await createService(data);
+    const result = await createService(formData);
 
     if (result.success) {
-      toast.success(editingService ? 'Servicio actualizado exitosamente' : 'Servicio creado exitosamente', {
+      toast.success('Servicio creado exitosamente', {
         duration: 3000,
         position: 'top-center',
       });
@@ -226,7 +212,7 @@ export default function ServicesPage() {
       }
       throw new Error(result.error || 'Error al guardar');
     }
-  }, [editingService, loadData, closeModal]);
+  }, [loadData, closeModal]);
 
   const handleDelete = useCallback(async (id: string, title: string) => {
     if (!confirm(`¿Estás seguro de eliminar "${title}"?`)) return;
@@ -379,7 +365,8 @@ export default function ServicesPage() {
               displayOrder={(service as any).display_order || index + 1}
               imageError={imageError[service.id] || false}
               onImageError={() => handleImageError(service.id)}
-              onEdit={() => openEditModal(service)}
+              isEditing={isPending && editingId === service.id}
+              onEdit={() => openEditPage(service)}
               onDelete={() => handleDelete(service.id, service.title)}
               onDuplicate={() => handleDuplicate(service.id, service.title)}
               onDragStart={(e) => handleDragStart(e, index)}
@@ -393,30 +380,21 @@ export default function ServicesPage() {
         </div>
       )}
 
-      {/* Modal de Crear/Editar */}
+      {/* Modal solo para Crear nuevo servicio */}
       {isModalOpen && (
         <Modal
           isOpen={isModalOpen}
           onClose={closeModal}
-          title={editingService ? 'Editar Servicio' : 'Nuevo Servicio'}
+          title="Nuevo Servicio"
         >
           <ServiceForm
-            key={editingService?.id || 'new'}
-            initialData={editingService ? {
-              title: editingService.title,
-              category_id: editingService.category_id,
-              price: editingService.price,
-              image: editingService.image,
-              description: editingService.description,
-              service_points: (editingService as any).service_points || [],
-              priceComponents: (editingService as any).priceComponents || [],
-              gameIds: (editingService as any).gameIds || []
-            } : undefined}
+            key="new"
+            initialData={undefined}
             categories={categories.map(c => ({ id: c.id, name: c.name }))}
             games={games}
             onSubmit={handleFormSubmit}
             onCancel={closeModal}
-            isEditing={!!editingService}
+            isEditing={false}
           />
         </Modal>
       )}

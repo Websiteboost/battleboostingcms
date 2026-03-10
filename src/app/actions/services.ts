@@ -20,8 +20,12 @@ const serviceSchema = z.object({
   service_points: z.array(z.string()).optional(),
   priceComponents: z.array(z.object({
     service_id: z.string().optional(),
-    type: z.enum(['bar', 'box', 'custom', 'selectors', 'additional', 'boxtitle', 'labeltitle']),
+    type: z.enum(['bar', 'box', 'custom', 'selectors', 'additional', 'boxtitle', 'labeltitle', 'group']),
     config: z.any(),
+    display_order: z.number().optional(),
+    required: z.boolean().optional(),
+    estimated_time: z.number().optional(),
+    discount_percent: z.coerce.number().optional(),
   })).optional(),
   gameIds: z.array(z.string()).optional(),
 });
@@ -315,11 +319,14 @@ export async function duplicateService(serviceId: string) {
       )
     `;
 
-    // Copiar los componentes de precio
+    // Copiar los componentes de precio (incluyendo grupos con sus hijos embebidos en config.children)
     if (priceComponents && priceComponents.length > 0) {
-      const componentsWithoutId = priceComponents.map(pc => ({
+      const componentsWithoutId = priceComponents.map((pc, i) => ({
         type: pc.type,
-        config: pc.config
+        config: pc.config,
+        display_order: pc.display_order ?? i,
+        required: pc.required ?? false,
+        estimated_time: pc.estimated_time ?? 0,
       }));
       await replaceServicePriceComponents(newServiceId, componentsWithoutId);
     }

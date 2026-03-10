@@ -1,11 +1,32 @@
 'use client';
 
 import { useState, useCallback, memo, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ImagePreview } from './ImagePreview';
-import { PriceComponentEditor } from './PriceComponentEditor';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react';
+
+// bundle-dynamic-imports: load heavy component only on demand (7 sub-editors)
+const PriceComponentEditor = dynamic(
+  () => import('./PriceComponentEditor').then(m => ({ default: m.PriceComponentEditor })),
+  { loading: () => <div className="h-20 animate-pulse bg-slate-800/60 rounded-lg" />, ssr: false }
+);
+
+// Hoisted outside component to avoid recreation on every render
+const COMPONENT_LABELS: Record<string, string> = {
+  bar: 'Barra',
+  box: 'Cajas',
+  selectors: 'Selectores',
+  additional: 'Adicionales',
+  custom: 'Custom',
+  boxtitle: 'Caja Título',
+  labeltitle: 'Separador',
+  group: 'Grupo',
+};
+
+// Tipos que producen un valor numérico al total (aplican descuento)
+const DISCOUNT_COMPONENT_TYPES = new Set(['bar', 'box', 'selectors', 'additional', 'custom']);
 import toast from 'react-hot-toast';
 import type { Game } from '@/types';
 import type { 
@@ -17,7 +38,8 @@ import type {
   AdditionalConfig,
   CustomConfig,
   BoxTitleConfig,
-  LabelTitleConfig
+  LabelTitleConfig,
+  GroupConfig,
 } from '@/types/priceComponents';
 
 interface ServiceFormProps {
@@ -72,6 +94,8 @@ const getDefaultConfig = (type: PriceComponentType): any => {
       return { options: [{ label: '', value: '' }] } as BoxTitleConfig;
     case 'labeltitle':
       return { title: 'Nueva Sección' } as LabelTitleConfig;
+    case 'group':
+      return { title: 'Nuevo Grupo', collapseByDefault: false, children: [] } as GroupConfig;
   }
 };
 
@@ -87,6 +111,7 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
     gameIds: [],
   });
   const [saving, setSaving] = useState(false);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   
   // Refs para hacer focus en campos con error
   const titleRef = useRef<HTMLInputElement>(null);
@@ -163,7 +188,11 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
         price: typeof formData.price === 'string' ? parseFloat(formData.price) : formData.price,
         description: cleanedDescriptions,
         service_points: (formData.service_points || []).filter(p => p.trim() !== ''),
-        priceComponents: formData.priceComponents?.map(({ id, created_at, ...rest }) => rest) || [],
+        priceComponents: (formData.priceComponents || []).map(({ id, created_at, ...rest }, i) => ({
+          ...rest,
+          display_order: i,
+          discount_percent: parseFloat(String(rest.discount_percent ?? 0)) || 0,
+        })),
         gameIds: formData.gameIds || [],
       };
       await onSubmit(cleanedData);
@@ -232,17 +261,18 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
 
   // Price Components handlers
   const addPriceComponent = useCallback((type: PriceComponentType) => {
-    const newComponent: Omit<PriceComponent, 'id' | 'created_at'> = {
-      service_id: '', // Se asignará en el backend
+    const nextIndex = formData.priceComponents?.length || 0;
+    const newComponent: PriceComponent = {
+      service_id: '',
       type,
       config: getDefaultConfig(type),
     };
-    
     setFormData(prev => ({
       ...prev,
-      priceComponents: [...(prev.priceComponents || []), newComponent as PriceComponent],
+      priceComponents: [...(prev.priceComponents || []), newComponent],
     }));
-  }, []);
+    setExpandedIndex(nextIndex); // auto-expand newly added component
+  }, [formData.priceComponents?.length]);
 
   const updatePriceComponent = useCallback((index: number, config: any) => {
     setFormData(prev => {
@@ -255,11 +285,58 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
     });
   }, []);
 
+  const updatePriceComponentRequired = useCallback((index: number, required: boolean) => {
+    setFormData(prev => {
+      const newComponents = [...(prev.priceComponents || [])];
+      newComponents[index] = { ...newComponents[index], required };
+      return { ...prev, priceComponents: newComponents };
+    });
+  }, []);
+
+  const updatePriceComponentEstimatedTime = useCallback((index: number, estimatedTime: number) => {
+    setFormData(prev => {
+      const newComponents = [...(prev.priceComponents || [])];
+      newComponents[index] = { ...newComponents[index], estimated_time: estimatedTime };
+      return { ...prev, priceComponents: newComponents };
+    });
+  }, []);
+
+  const updatePriceComponentDiscountPercent = useCallback((index: number, discountPercent: number) => {
+    setFormData(prev => {
+      const newComponents = [...(prev.priceComponents || [])];
+      newComponents[index] = { ...newComponents[index], discount_percent: discountPercent };
+      return { ...prev, priceComponents: newComponents };
+    });
+  }, []);
+
   const removePriceComponent = useCallback((index: number) => {
     setFormData(prev => ({
       ...prev,
       priceComponents: (prev.priceComponents || []).filter((_, i) => i !== index),
     }));
+    // Adjust expandedIndex after removal
+    setExpandedIndex(prev => {
+      if (prev === null) return null;
+      if (prev === index) return null;
+      if (prev > index) return prev - 1;
+      return prev;
+    });
+  }, []);
+
+  const moveComponent = useCallback((index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    setFormData(prev => {
+      const components = [...(prev.priceComponents || [])];
+      if (targetIndex < 0 || targetIndex >= components.length) return prev;
+      [components[index], components[targetIndex]] = [components[targetIndex], components[index]];
+      return { ...prev, priceComponents: components };
+    });
+    // Keep the same component expanded after move
+    setExpandedIndex(prev => {
+      if (prev === index) return targetIndex;
+      if (prev === targetIndex) return index;
+      return prev;
+    });
   }, []);
 
   const handleGameToggle = useCallback((gameId: string) => {
@@ -434,26 +511,133 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
           <p className="text-xs">Los componentes permiten crear precios dinámicos. El usuario podrá configurar opciones que cambiarán el precio final.</p>
         </div>
 
-        {/* Lista de componentes agregados */}
-        <div className="space-y-3 mt-4">
-          {(formData.priceComponents || []).map((component, index) => (
-            <div key={index} className="relative">
-              <Button
-                type="button"
-                variant="danger"
-                onClick={() => removePriceComponent(index)}
-                className="absolute top-2 right-2 z-10 px-2! py-1!"
-              >
-                <Trash2 size={14} />
-              </Button>
-              
-              <PriceComponentEditor
-                type={component.type}
-                config={component.config}
-                onChange={(config) => updatePriceComponent(index, config)}
-              />
-            </div>
-          ))}
+        {/* Lista de componentes en acordeón */}
+        <div className="space-y-2 mt-4">
+          {(formData.priceComponents || []).map((component, index) => {
+            const isExpanded = expandedIndex === index;
+            const totalComponents = formData.priceComponents?.length || 0;
+            return (
+              <div key={index} className="border border-slate-700 rounded-lg overflow-hidden">
+                {/* Accordion Header */}
+                <div
+                  className="flex items-center gap-2 p-3 bg-slate-800/80 cursor-pointer select-none hover:bg-slate-800 transition-colors"
+                  onClick={() => setExpandedIndex(isExpanded ? null : index)}
+                >
+                  <span className="text-xs font-bold text-cyber-purple w-5 text-center shrink-0">{index + 1}</span>
+                  <span className="flex-1 text-sm font-medium text-white">
+                    {COMPONENT_LABELS[component.type] ?? component.type}
+                  </span>
+
+                  {/* Badge de descuento — visible en cabecera si discount > 0 */}
+                  {DISCOUNT_COMPONENT_TYPES.has(component.type) && (component.discount_percent ?? 0) > 0 && (
+                    <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-cyber-green/20 text-cyber-green border border-cyber-green/30 shrink-0">
+                      -{component.discount_percent}%
+                    </span>
+                  )}
+
+                  {/* Toggle Obligatorio — siempre visible sin expandir */}
+                  <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                    <span className="text-xs text-gray-500 hidden sm:inline">Obligatorio</span>
+                    <button
+                      type="button"
+                      onClick={() => updatePriceComponentRequired(index, !component.required)}
+                      className={`relative w-9 h-5 rounded-full transition-colors duration-200 shrink-0 ${
+                        component.required ? 'bg-cyber-purple' : 'bg-slate-600'
+                      }`}
+                      title={component.required ? 'Obligatorio: Sí' : 'Obligatorio: No'}
+                    >
+                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${
+                        component.required ? 'left-4.5' : 'left-0.5'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Reorder buttons — stopPropagation so they don't toggle accordion */}
+                  <div className="flex gap-0.5" onClick={e => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => moveComponent(index, 'up')}
+                      className="p-1.5 rounded hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-gray-400 hover:text-white transition-colors"
+                      title="Mover arriba"
+                    >
+                      <ArrowUp size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === totalComponents - 1}
+                      onClick={() => moveComponent(index, 'down')}
+                      className="p-1.5 rounded hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-gray-400 hover:text-white transition-colors"
+                      title="Mover abajo"
+                    >
+                      <ArrowDown size={13} />
+                    </button>
+                  </div>
+
+                  {/* Delete */}
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); removePriceComponent(index); }}
+                    className="p-1.5 rounded hover:bg-red-900/50 text-gray-400 hover:text-red-400 transition-colors"
+                    title="Eliminar componente"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+
+                  {/* Expand indicator */}
+                  <ChevronDown
+                    size={16}
+                    className={`text-gray-400 transition-transform duration-200 shrink-0 ${
+                      isExpanded ? 'rotate-180' : ''
+                    }`}
+                  />
+                </div>
+
+                {/* Accordion Content — only mounted when expanded (rerender-memo / lazy) */}
+                {isExpanded && (
+                  <div className="p-3 border-t border-slate-700/60 space-y-3">
+                    {/* Metadatos del componente: tiempo estimado + descuento */}
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-1 pb-1 border-b border-slate-700/40">
+                      {/* Tiempo Estimado */}
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-gray-400 shrink-0">⏱ Tiempo estimado (min):</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={component.estimated_time ?? 0}
+                          onChange={(e) => updatePriceComponentEstimatedTime(index, parseInt(e.target.value) || 0)}
+                          className="w-20 px-2 py-1 bg-slate-800/50 border border-slate-600 rounded text-xs text-white focus:outline-none focus:border-cyber-purple transition-colors"
+                        />
+                        <span className="text-xs text-gray-500">(0 = no aplica)</span>
+                      </div>
+                      {/* Descuento — solo para tipos con valor numérico */}
+                      {DISCOUNT_COMPONENT_TYPES.has(component.type) && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-gray-400 shrink-0">🏷 Descuento (%):</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={component.discount_percent ?? 0}
+                            onChange={(e) => updatePriceComponentDiscountPercent(index, parseFloat(e.target.value) || 0)}
+                            className="w-20 px-2 py-1 bg-slate-800/50 border border-cyber-green/30 rounded text-xs text-white focus:outline-none focus:border-cyber-green transition-colors"
+                          />
+                          <span className="text-xs text-gray-500">(0 = sin descuento)</span>
+                        </div>
+                      )}
+                    </div>
+                    <PriceComponentEditor
+                      type={component.type}
+                      config={component.config}
+                      onChange={(config) => updatePriceComponent(index, config)}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {(!formData.priceComponents || formData.priceComponents.length === 0) && (
             <div className="text-center py-8 text-gray-500 text-sm">
@@ -519,6 +703,14 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
             className="text-xs py-3"
           >
             + Separador
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => addPriceComponent('group')}
+            className="text-xs py-3 border-amber-500/40! text-amber-400!"
+          >
+            + Grupo
           </Button>
         </div>
       </div>

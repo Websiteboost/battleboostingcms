@@ -1,0 +1,246 @@
+ALCANCE FEBRERO -12 puntos  23-02-2026
+
+
+1.Crear un agrupador en componentes (en el cms se debe crear una opción para poder agregar un agrupador donde dentro se crearan componentes, en el front se verán como pestañitas donde tiene la opción se colapsarse o dejar abierta, esta opción de colapsar va dentro del cms)
+2.crear una barra de búsqueda de servicios (solo front)
+3.Crear algo para mover los componentes a gusto (en el editor de servicios del cms todos los servicios también tendrán un campo de ordenamiento los items o "compoentnes" similar al campo de ordenamiento de categorias o servicios pero esto será interno del campo creado dentro del servicio para poder visualizarse en ese orden en el front)
+4.añadir  formato de EURO a los precios. (En el CMS en el apartado de config del sitio, agregar 1 campo nuevo para guardar el valor del Euro con base al dolar (esto es algo manual)
+5.Agregar tiempo estimados en servicios editable y que aumentan dependiendo de la elección de servicios adicionales (yo gestiono y editó el tiempo) (En el cms, el editor de servicios tiene componentes que deben también tener un campo de tiempo estimado, cada servicio tiene tiempo pero no es obligatorio, por lo que los que no son obligatorios se deja en 0)
+6.agregar un botón que yo pueda crear con enlaces que envíen a otras partes. (Front)
+7.añadir un códigos de descuento (CMS, se debe crear una sección nueva que se llame Descuentos, y ahí se podrán crear códigos de descuentos con la posibilidad de consultarse via api, para así saber de cuanto es el descuento)
+8.Mejorar el componente caja, agregar una opción para permitir visualizar el precio o ocultarlo. (cms y front)
+Adicional agregar una opción para que visualmente sea tipo caja o píldora. (cms y front)
+ADICIONAL agregar una opción en TODOS los componentes para que sean o no obligatorios. (CMS todos los componentes deben tener una opción para marcar si es obligatorio de llenar en el front o no)
+9.agregar tabs en el front a los componentes de servicios todo, en la ventana de pagos (Solo front, los desplegables del cms serán los tabs)
+10. agregar para tener cambio de idiomas (Español/inglés) (Solo front, via api de google)
+11. Lo que hablamos por whatsapp sobre el logo (poder cambiar el logo por imagen y crear animación de dicho logo cuando se pueda anexar) (CMS, en config del sitio crear campo para agregar una imagen (url solo, ya que las imagenes se suben directamente desde la gestion de imagenes del sitio), cuando se suba la url esta se guarda en dicho campo que luego el front lo lee para cambiar el logo del sitio)
+
+
+================================================================================
+PLAN DE TRABAJO — ORDEN DE IMPLEMENTACIÓN
+================================================================================
+(Ordenado de mayor a menor complejidad/dependencias estructurales)
+Convención: [ ] Pendiente   [x] Completado   [~] En progreso
+
+
+--------------------------------------------------------------------------------
+FASE 1 — Refactorización del Editor de Servicios + Reordenamiento (Punto 3)
+--------------------------------------------------------------------------------
+Impacto: Performance crítica + base para todos los demás puntos del editor.
+El modal actual renderiza todos los PriceComponentEditor simultáneamente,
+causando lentitud con muchos componentes. Hay que reestructurar antes de
+añadir más features encima.
+
+Pasos:
+[x] 1.1  Migrar el editor de servicios de modal/popup a página dedicada
+         /dashboard/services/[id]/edit (full-page, sin overlay)
+
+[x] 1.2  Implementar renderizado lazy por componente: cada PriceComponentEditor
+         arranca colapsado. Solo se expande el que está en edición activa.
+
+[x] 1.3  Migración de DB: agregar columna display_order a service_prices
+         SQL: ALTER TABLE service_prices ADD COLUMN display_order INTEGER DEFAULT 0;
+
+[x] 1.4  Implementar botones de reordenamiento (↑ ↓) en el editor para
+         mover componentes hacia arriba o abajo.
+
+[x] 1.5  Persistir el nuevo display_order en DB al guardar / reordenar.
+
+[x] 1.6  Verificar que el front consume los componentes en el orden correcto.
+
+
+--------------------------------------------------------------------------------
+FASE 2 — Campo "Obligatorio" en todos los componentes + Mejoras al Box (Punto 8)
+--------------------------------------------------------------------------------
+Impacto: DB + todos los tipos de componentes existentes.
+Mejor hacerlo justo después de refactorizar el editor, antes de crear nuevos
+tipos de componente (agrupador).
+
+Pasos:
+[x] 2.1  Migración de DB: agregar columna required a service_prices
+         SQL: ALTER TABLE service_prices ADD COLUMN required BOOLEAN DEFAULT false;
+
+[x] 2.2  Actualizar el tipo TypeScript PriceComponent (tabla service_prices) para incluir
+         required: boolean y display_order: number.
+
+[x] 2.3  Añadir toggle "Obligatorio" en PriceComponentEditor
+         (visible en todos los tipos de componente).
+
+[x] 2.4  Mejora Box — añadir campo showPrice: boolean al BoxConfig
+         (opción para mostrar u ocultar el precio en el front).
+
+[x] 2.5  Mejora Box — añadir campo style: 'box' | 'pill' al BoxConfig
+         (cambiar visualización entre caja o píldora en el front).
+
+[x] 2.6  Actualizar las server actions para guardar/leer required, showPrice y style.
+
+
+--------------------------------------------------------------------------------
+FASE 3 — Agrupador de Componentes (Punto 1)
+--------------------------------------------------------------------------------
+Impacto: DB + nuevo tipo de componente + jerarquía padre-hijo en el editor.
+Es el más complejo arquitecturalmente porque introduce componentes anidados.
+
+Pasos:
+[x] 3.1  Migración de DB: agregar columna group_id a service_prices
+         SQL: ALTER TABLE service_prices
+              ADD COLUMN group_id UUID REFERENCES service_prices(id) ON DELETE SET NULL;
+
+[x] 3.2  Añadir tipo 'group' a PriceComponentType en TypeScript.
+         Definir GroupConfig: { title: string, collapseByDefault: boolean }
+
+[x] 3.3  Crear el editor del componente Group en PriceComponentEditor:
+         muestra sus hijos indentados y permite añadir/quitar componentes dentro.
+
+[x] 3.4  Actualizar la lógica de renderizado del editor para manejar
+         la jerarquía (componentes raíz vs. hijos de grupo).
+
+[x] 3.5  Actualizar las server actions para guardar/leer la relación group_id.
+         (duplicateService también preserva grupos correctamente)
+
+[x] 3.6  Verificar que el front recibe y renderiza los grupos correctamente
+         (pestañas / acordeón colapsable según collapseByDefault).
+
+
+--------------------------------------------------------------------------------
+FASE 4 — Tiempos Estimados en Componentes (Punto 5)
+--------------------------------------------------------------------------------
+Impacto: DB + campo nuevo en el editor. Requiere el editor ya refactorizado.
+
+Pasos:
+[x] 4.1  Migración de DB: agregar columna estimated_time a service_prices
+         SQL: ALTER TABLE service_prices ADD COLUMN estimated_time INTEGER DEFAULT 0;
+
+[x] 4.2  Añadir campo de tiempo estimado (numérico, no obligatorio) en
+         PriceComponentEditor. Valor 0 = no aplica para ese componente.
+
+[x] 4.3  Actualizar TypeScript: añadir estimated_time: number al tipo PriceComponent.
+
+[x] 4.4  Actualizar server actions para persistir estimated_time.
+         (duplicateService también preserva estimated_time correctamente)
+
+[x] 4.5  Verificar que el front suma correctamente los tiempos de los
+         componentes seleccionados para mostrar el tiempo total estimado.
+
+
+--------------------------------------------------------------------------------
+FASE 5 — Sección de Códigos de Descuento (Punto 7)
+--------------------------------------------------------------------------------
+Impacto: nueva tabla en DB + sección nueva en CMS + nuevo endpoint API.
+Sección completamente independiente del editor de servicios.
+
+Pasos:
+[x] 5.1  Migración de DB: crear tabla discount_codes (ejecutado)
+         SQL:
+         CREATE TABLE discount_codes (
+           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+           code VARCHAR(50) UNIQUE NOT NULL,
+           discount_type VARCHAR(10) NOT NULL CHECK (discount_type IN ('percent', 'fixed')),
+           discount_value NUMERIC(10,2) NOT NULL,
+           active BOOLEAN DEFAULT true,
+           expires_at TIMESTAMP NULL,
+           created_at TIMESTAMP DEFAULT NOW()
+         );
+
+[x] 5.2  Crear server action: src/app/actions/discounts.ts
+         (getDiscounts, createDiscount, updateDiscount, toggleDiscountActive, deleteDiscount)
+
+[x] 5.3  Crear página CMS: /dashboard/descuentos/page.tsx
+         con listado (tabla desktop + cards mobile), modal CRUD, buscador y stats.
+
+[x] 5.4  Crear API endpoint: /api/discounts/[code]/route.ts
+         que devuelva el descuento activo dado un código (para consumir desde el front).
+
+[x] 5.5  Verificar desde el front que se puede consultar un código y
+         se aplica correctamente el descuento.
+
+
+--------------------------------------------------------------------------------
+FASE 6 — Config del Sitio: Tasa de Euro + Logo (Puntos 4 y 11)
+--------------------------------------------------------------------------------
+Impacto: 2 columnas en site_config + 2 campos en la UI de Config.
+Los más simples del plan, no dependen de nada de lo anterior.
+
+Pasos:
+[x] 6.1  Migración de DB: agregar columnas a site_config (ejecutado)
+         SQL:
+         ALTER TABLE site_config ADD COLUMN euro_value NUMERIC(10,4) DEFAULT 1.0800;
+         ALTER TABLE site_config ADD COLUMN logo_url TEXT;
+
+[x] 6.2  Actualizar el tipo TypeScript SiteConfig para incluir
+         euro_value y logo_url.
+
+[x] 6.3  Actualizar server action siteConfig.ts para leer/guardar
+         euro_value y logo_url.
+
+[x] 6.4  Añadir campo "Valor del Euro (USD)" en /dashboard/config
+         (input numérico manual).
+
+[x] 6.5  Añadir campo "URL del Logo" en /dashboard/config
+         (input de texto con preview de imagen si hay URL).
+
+[ ] 6.6  Verificar que el front lee correctamente logo_url para
+         reemplazar el logo del sitio y euro_value para los precios en EUR.
+
+
+--------------------------------------------------------------------------------
+ADICIONAL — FASE 7 — Descuento por Componente de Precio
+--------------------------------------------------------------------------------
+Impacto: 1 columna en DB + campo en el editor CMS + lógica en el front.
+Permite aplicar un % de descuento individual a cada componente que tenga
+un valor numérico de precio (box, selectors, additional, custom).
+El descuento se aplica al aporte de ese componente antes de sumarse al total.
+
+Componentes CON descuento (producen un valor numérico al total):
+  - bar       → modo simple (initValue/finalValue/step) y breakpoints: el
+                valor seleccionado en el rango suma al total → aplica descuento
+  - box       → descuento sobre cada BoxOption.value seleccionada
+  - selectors → descuento sobre cada SelectorOption.value seleccionada
+  - additional→ descuento sobre cada AdditionalOption.value marcada
+  - custom    → descuento sobre el valor ingresado por el usuario
+
+Componentes SIN descuento (no tienen precio numérico):
+  - boxtitle  → value es texto, no precio
+  - labeltitle→ separador visual
+  - group     → contenedor, el descuento va en sus hijos individuales
+
+Estrategia: columna top-level en service_prices (igual que required/estimated_time).
+Un solo campo discount_percent, el CMS lo muestra solo en los tipos aplicables.
+
+Pasos:
+[x] 7.1  Migración de DB: agregar columna discount_percent a service_prices
+         SQL: ALTER TABLE service_prices
+              ADD COLUMN discount_percent NUMERIC(5,2) DEFAULT 0;
+         (0 = sin descuento, 100 = gratis, permite decimales ej: 12.50)
+
+[x] 7.2  Actualizar TypeScript: añadir discount_percent?: number al tipo
+         PriceComponent y a GroupChild en priceComponents.ts.
+
+[x] 7.3  Añadir campo "Descuento (%)" en PriceComponentEditor en el CMS.
+         - Input numérico (0-100, step 0.01)
+         - Visible SOLO en tipos: bar, box, selectors, additional, custom
+         - Se muestra junto a los campos de required/estimated_time
+         - Badge visual en la cabecera del componente si discount_percent > 0
+
+[x] 7.4  Actualizar server actions (servicePrices.ts) para leer y guardar
+         discount_percent. Incluir también en duplicateService.
+
+[ ] 7.5  Verificar en el front que el descuento se aplica correctamente
+         al aporte del componente antes de sumar al total del pedido.
+         Ejemplo: BoxOption value=100 con discount_percent=20 → aporta 80.
+
+
+================================================================================
+RESUMEN DE MIGRACIONES DB (en orden de ejecución)
+================================================================================
+
+Fase 1: ALTER TABLE service_prices ADD COLUMN display_order INTEGER DEFAULT 0;
+Fase 2: ALTER TABLE service_prices ADD COLUMN required BOOLEAN DEFAULT false;
+Fase 3: ALTER TABLE service_prices ADD COLUMN group_id UUID REFERENCES service_prices(id) ON DELETE SET NULL;
+Fase 4: ALTER TABLE service_prices ADD COLUMN estimated_time INTEGER DEFAULT 0;
+Fase 5: CREATE TABLE discount_codes (...);
+Fase 6: ALTER TABLE site_config ADD COLUMN euro_value NUMERIC(10,4) DEFAULT 1.0800;
+        ALTER TABLE site_config ADD COLUMN logo_url TEXT;
+
+================================================================================
+

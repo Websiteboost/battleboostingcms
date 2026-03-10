@@ -14,7 +14,8 @@ import {
   Settings,
   HelpCircle,
   FileText,
-  UserCog
+  UserCog,
+  Tag
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 
@@ -26,6 +27,7 @@ const navItems = [
   { name: 'FAQ', href: '/dashboard/accordion', icon: HelpCircle, adminOnly: false },
   { name: 'Políticas', href: '/dashboard/policies', icon: FileText, adminOnly: false },
   { name: 'Imágenes', href: '/dashboard/images', icon: Image, adminOnly: false },
+  { name: 'Descuentos', href: '/dashboard/descuentos', icon: Tag, adminOnly: true },
   { name: 'Configuración', href: '/dashboard/config', icon: Settings, adminOnly: true },
   { name: 'Cuenta', href: '/dashboard/cuenta', icon: UserCog, adminOnly: true },
 ];
@@ -93,7 +95,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-3 lg:p-4 space-y-1 lg:space-y-2 overflow-y-auto">
+        <nav className="flex-1 p-3 lg:p-4 space-y-1 lg:space-y-2 overflow-y-auto sidebar-scroll">
           {navItems
             .filter(item => !item.adminOnly || isAdmin)
             .map((item) => {

@@ -141,3 +141,56 @@
     animation: var(--animate-pulse-glow);
   }
 }
+
+/* Scrollbar cyberpunk — solo desktop */
+@media (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-cyber-dark);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(168 85 247 / 0.4);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(168 85 247 / 0.75);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: var(--color-cyber-dark);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(168 85 247 / 0.4) var(--color-cyber-dark);
+  }
+
+  /* Sidebar nav scroll */
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgb(168 85 247 / 0.3);
+    border-radius: 9999px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgb(168 85 247 / 0.6);
+  }
+
+  .sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(168 85 247 / 0.3) transparent;
+  }
+}

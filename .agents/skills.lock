@@ -1,0 +1,33 @@
+{
+  "version": "1",
+  "skills": [
+    {
+      "name": "vercel-react-best-practices",
+      "source": "https://github.com/vercel-labs/agent-skills",
+      "installName": "vercel-react-best-practices",
+      "installedAt": "2026-03-09T00:00:00.000Z",
+      "agents": ["github-copilot"]
+    },
+    {
+      "name": "vercel-composition-patterns",
+      "source": "https://github.com/vercel-labs/agent-skills",
+      "installName": "vercel-composition-patterns",
+      "installedAt": "2026-03-09T00:00:00.000Z",
+      "agents": ["github-copilot"]
+    },
+    {
+      "name": "web-design-guidelines",
+      "source": "https://github.com/vercel-labs/agent-skills",
+      "installName": "web-design-guidelines",
+      "installedAt": "2026-03-09T00:00:00.000Z",
+      "agents": ["github-copilot"]
+    },
+    {
+      "name": "frontend-design",
+      "source": "https://github.com/anthropics/skills",
+      "installName": "frontend-design",
+      "installedAt": "2026-03-09T00:00:00.000Z",
+      "agents": ["github-copilot"]
+    }
+  ]
+}
