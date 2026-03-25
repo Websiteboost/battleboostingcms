@@ -17,10 +17,14 @@ const serviceSchema = z.object({
   image: z.string().regex(/^https?:\/\/.+/, { message: "La URL de la imagen no es válida" }),
   description: z.array(z.string()).min(1, { message: "Debe haber al menos una descripción" }),
   service_points: z.array(z.string()).optional(),
+  title_es: z.string().optional().nullable(),
+  description_es: z.array(z.string()).optional().nullable(),
+  service_points_es: z.array(z.string()).optional().nullable(),
   priceComponents: z.array(z.object({
     service_id: z.string().optional(),
     type: z.enum(['bar', 'box', 'custom', 'selectors', 'additional', 'boxtitle', 'labeltitle', 'group']),
     config: z.any(),
+    config_es: z.any().optional(),
     display_order: z.number().optional(),
     required: z.boolean().optional(),
     estimated_time: z.number().optional(),
@@ -68,7 +72,7 @@ export async function createService(data: z.infer<typeof serviceSchema>) {
       };
     }
 
-    const { title, category_id, price, image, description, service_points, priceComponents, gameIds } = validatedFields.data;
+    const { title, category_id, price, image, description, service_points, title_es, description_es, service_points_es, priceComponents, gameIds } = validatedFields.data;
 
     // Generar ID único basado en el título
     const baseSlug = title
@@ -98,8 +102,8 @@ export async function createService(data: z.infer<typeof serviceSchema>) {
 
     // Crear el servicio
     await sql`
-      INSERT INTO services (id, title, category_id, price, image, description, service_points, display_order)
-      VALUES (${serviceId}, ${title}, ${category_id}, ${price}, ${image}, ${description}, ${service_points || []}, ${nextOrder})
+      INSERT INTO services (id, title, category_id, price, image, description, service_points, display_order, title_es, description_es, service_points_es)
+      VALUES (${serviceId}, ${title}, ${category_id}, ${price}, ${image}, ${description}, ${service_points || []}, ${nextOrder}, ${title_es ?? null}, ${description_es ?? null}, ${service_points_es ?? null})
     `;
 
     // Si hay componentes de precio, crearlos
@@ -144,7 +148,7 @@ export async function updateService(data: z.infer<typeof serviceSchema>) {
       };
     }
 
-    const { id, title, category_id, price, image, description, service_points, priceComponents, gameIds } = validatedFields.data;
+    const { id, title, category_id, price, image, description, service_points, title_es, description_es, service_points_es, priceComponents, gameIds } = validatedFields.data;
 
     if (!id) {
       return { success: false, error: 'ID del servicio es requerido' };
@@ -154,7 +158,8 @@ export async function updateService(data: z.infer<typeof serviceSchema>) {
     await sql`
       UPDATE services
       SET title = ${title}, category_id = ${category_id}, price = ${price}, 
-          image = ${image}, description = ${description}, service_points = ${service_points || []}
+          image = ${image}, description = ${description}, service_points = ${service_points || []},
+          title_es = ${title_es ?? null}, description_es = ${description_es ?? null}, service_points_es = ${service_points_es ?? null}
       WHERE id = ${id}
     `;
 

@@ -9,9 +9,11 @@ import type { BoxTitleConfig, BoxTitleOption } from '@/types/priceComponents';
 interface BoxTitleEditorProps {
   config: BoxTitleConfig;
   onChange: (config: BoxTitleConfig) => void;
+  configEs?: Record<string, any> | null;
+  onChangeEs?: (configEs: any) => void;
 }
 
-export const BoxTitleEditor = memo(({ config, onChange }: BoxTitleEditorProps) => {
+export const BoxTitleEditor = memo(({ config, onChange, configEs, onChangeEs }: BoxTitleEditorProps) => {
   const addOption = () => onChange({ options: [...config.options, { label: '', value: '' }] });
 
   const updateOption = (index: number, option: BoxTitleOption) => {
@@ -24,6 +26,12 @@ export const BoxTitleEditor = memo(({ config, onChange }: BoxTitleEditorProps) =
     onChange({ options: config.options.filter((_, i) => i !== index) });
   };
 
+  const updateOptionEs = (index: number, field: 'label' | 'value', text: string) => {
+    const newOpts = [...(configEs?.options || config.options.map(() => ({})))];
+    newOpts[index] = { ...newOpts[index], [field]: text };
+    onChangeEs?.({ ...(configEs || {}), options: newOpts });
+  };
+
   return (
     <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-blue-500/30">
       <h4 className="text-sm font-medium text-blue-400">Cajas con Título y Datos</h4>
@@ -33,26 +41,44 @@ export const BoxTitleEditor = memo(({ config, onChange }: BoxTitleEditorProps) =
       </div>
 
       {config.options.map((option, index) => (
-        <div key={index} className="flex gap-2">
-          <Input
-            label="Título"
-            value={option.label}
-            onChange={(e) => updateOption(index, { ...option, label: e.target.value })}
-            placeholder="Ej: Feature 1"
-            className="flex-1"
-            required
-          />
-          <Input
-            label="Datos/Información"
-            value={option.value}
-            onChange={(e) => updateOption(index, { ...option, value: e.target.value })}
-            placeholder="Ej: Includes XYZ"
-            className="flex-1"
-            required
-          />
-          <Button type="button" variant="danger" onClick={() => removeOption(index)} className="px-3! self-end">
-            <Trash2 size={16} />
-          </Button>
+        <div key={index} className="space-y-1.5">
+          <div className="flex gap-2">
+            <Input
+              label="Título"
+              value={option.label}
+              onChange={(e) => updateOption(index, { ...option, label: e.target.value })}
+              placeholder="Ej: Feature 1"
+              className="flex-1"
+              required
+            />
+            <Input
+              label="Datos/Información"
+              value={option.value}
+              onChange={(e) => updateOption(index, { ...option, value: e.target.value })}
+              placeholder="Ej: Includes XYZ"
+              className="flex-1"
+              required
+            />
+            <Button type="button" variant="danger" onClick={() => removeOption(index)} className="px-3! self-end">
+              <Trash2 size={16} />
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              label={<>Título <span className="text-xs font-normal text-amber-400">(Spanish)</span></>}
+              value={configEs?.options?.[index]?.label ?? ''}
+              onChange={(e) => updateOptionEs(index, 'label', e.target.value)}
+              placeholder="Ej: Característica 1"
+              className="border-amber-500/40 focus:border-amber-400"
+            />
+            <Input
+              label={<>Datos <span className="text-xs font-normal text-amber-400">(Spanish)</span></>}
+              value={configEs?.options?.[index]?.value ?? ''}
+              onChange={(e) => updateOptionEs(index, 'value', e.target.value)}
+              placeholder="Ej: Incluye XYZ"
+              className="border-amber-500/40 focus:border-amber-400"
+            />
+          </div>
         </div>
       ))}
 

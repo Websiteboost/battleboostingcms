@@ -9,6 +9,8 @@ const accordionSchema = z.object({
   title: z.string().min(1, 'El título es requerido'),
   content: z.string().min(1, 'El contenido es requerido'),
   display_order: z.number().int().positive('El orden debe ser positivo'),
+  title_es: z.string().optional().nullable(),
+  content_es: z.string().optional().nullable(),
 });
 
 export type AccordionItem = {
@@ -17,12 +19,14 @@ export type AccordionItem = {
   content: string;
   display_order: number;
   created_at: Date;
+  title_es?: string | null;
+  content_es?: string | null;
 };
 
 export async function getAccordionItems() {
   try {
     const result = await sql`
-      SELECT id, title, content, display_order, created_at
+      SELECT id, title, content, display_order, created_at, title_es, content_es
       FROM accordion_items
       ORDER BY display_order ASC
     `;
@@ -82,8 +86,8 @@ export async function createAccordionItem(data: z.infer<typeof accordionSchema>)
     }
     
     await sql`
-      INSERT INTO accordion_items (id, title, content, display_order)
-      VALUES (${id}, ${validated.title}, ${validated.content}, ${validated.display_order})
+      INSERT INTO accordion_items (id, title, content, display_order, title_es, content_es)
+      VALUES (${id}, ${validated.title}, ${validated.content}, ${validated.display_order}, ${validated.title_es ?? null}, ${validated.content_es ?? null})
     `;
     
     return { success: true, data: { id, ...validated } };
@@ -161,7 +165,9 @@ export async function updateAccordionItem(data: z.infer<typeof accordionSchema> 
       UPDATE accordion_items
       SET title = ${validated.title},
           content = ${validated.content},
-          display_order = ${validated.display_order}
+          display_order = ${validated.display_order},
+          title_es = ${validated.title_es ?? null},
+          content_es = ${validated.content_es ?? null}
       WHERE id = ${id}
     `;
     

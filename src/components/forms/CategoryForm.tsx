@@ -13,9 +13,11 @@ interface CategoryFormProps {
     description: string;
     icon: string;
     gameIds?: string[];
+    name_es?: string | null;
+    description_es?: string | null;
   };
   games: Game[];
-  onSubmit: (data: { name: string; description: string; icon: string; gameIds: string[] }) => Promise<void>;
+  onSubmit: (data: { name: string; description: string; icon: string; gameIds: string[]; name_es?: string | null; description_es?: string | null }) => Promise<void>;
   onCancel: () => void;
   isEditing: boolean;
 }
@@ -26,6 +28,8 @@ export const CategoryForm = memo(({ initialData, games, onSubmit, onCancel, isEd
     description: '',
     icon: '',
     gameIds: [],
+    name_es: '',
+    description_es: '',
   });
   const [saving, setSaving] = useState(false);
   
@@ -37,7 +41,7 @@ export const CategoryForm = memo(({ initialData, games, onSubmit, onCancel, isEd
     if (initialData) {
       setFormData(initialData);
     }
-  }, [initialData?.name, initialData?.description, initialData?.icon, initialData?.gameIds]);
+  }, [initialData?.name, initialData?.description, initialData?.icon, initialData?.gameIds, initialData?.name_es, initialData?.description_es]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +87,14 @@ export const CategoryForm = memo(({ initialData, games, onSubmit, onCancel, isEd
     setFormData(prev => ({ ...prev, description: e.target.value }));
   }, []);
 
+  const handleNameEsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, name_es: e.target.value }));
+  }, []);
+
+  const handleDescriptionEsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, description_es: e.target.value }));
+  }, []);
+
   const handleIconChange = useCallback((iconName: string) => {
     setFormData(prev => ({ ...prev, icon: iconName }));
   }, []);
@@ -109,12 +121,26 @@ const handleGameToggle = useCallback((gameId: string) => {
       />
 
       <Input
+        label="Nombre (Spanish)"
+        value={formData.name_es || ''}
+        onChange={handleNameEsChange}
+        placeholder="Ej: Subida de Nivel Rápido"
+      />
+
+      <Input
         ref={descriptionRef}
         label="Descripción"
         value={formData.description}
         onChange={handleDescriptionChange}
         required
         placeholder="Descripción de la categoría"
+      />
+
+      <Input
+        label="Descripción (Spanish)"
+        value={formData.description_es || ''}
+        onChange={handleDescriptionEsChange}
+        placeholder="Descripción de la categoría en español"
       />
 
       <IconSelector

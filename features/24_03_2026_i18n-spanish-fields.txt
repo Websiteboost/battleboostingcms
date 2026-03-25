@@ -1,0 +1,280 @@
+FEATURE: Internacionalización — Campos en Español para el Frontend
+FECHA: 24/03/2026
+ESTADO: En planificación
+
+================================================================================
+RESUMEN
+================================================================================
+Agregar campos `_es` (sufijo español) en las tablas de la base de datos que
+contienen textos del frontend público. El CMS (admin) ya está en español, pero
+toda la info estática del sitio web del cliente estaba solo en inglés.
+
+El objetivo es poder servir el contenido en dos idiomas (EN + ES) sin romper
+los campos ingleses existentes. En una fase posterior se adaptará el frontend
+Webcarry para consumir los campos _es cuando el usuario seleccione español.
+
+================================================================================
+ALCANCE DE ESTA FASE (CMS solamente)
+================================================================================
+  - Migraciones SQL (7 archivos ALTER TABLE en /db/)
+  - Actualización de tipos TypeScript (src/types/)
+  - Actualización de Server Actions: Zod schemas + queries SQL
+  - Actualización de formularios del CMS (UI — campos adicionales con badge
+    "(Spanish)" junto al campo en inglés correspondiente)
+
+El frontend (proyecto Webcarry) queda para un plan futuro separado.
+
+================================================================================
+CONVENCIÓN
+================================================================================
+  - Nombre del campo: mismo identificador que el original + sufijo "_es"
+    Ejemplos: name → name_es | title → title_es | config → config_es
+  - Todos los campos nuevos son NULLABLE sin DEFAULT. El inglés sigue siendo
+    la fuente de verdad y campo obligatorio. El español es opcional; se puede
+    ir rellenando progresivamente.
+  - En el CMS: label "(Spanish)" visible junto al campo original en inglés.
+
+================================================================================
+TABLAS AFECTADAS
+================================================================================
+
+1. categories
+   Campos nuevos:
+     - name_es        VARCHAR(255)  NULLABLE
+     - description_es TEXT          NULLABLE
+
+2. services
+   Campos nuevos:
+     - title_es          VARCHAR(255)  NULLABLE
+     - description_es    TEXT[]        NULLABLE
+     - service_points_es TEXT[]        NULLABLE
+
+3. service_prices
+   Campos nuevos:
+     - config_es JSONB NULLABLE
+   Nota: config_es es un espejo del campo config (JSONB) pero solo se
+   rellenan los textos traducibles (labels, títulos, nombres de opciones).
+   Los valores numéricos (precios, rangos, steps) se ignoran en config_es.
+   Campos traducibles por tipo de componente:
+     · bar          → label_es
+     · box          → options[i].label_es
+     · boxtitle     → options[i].label_es, options[i].data_es
+     · selectors    → clave del selector (título), options[i].label_es
+     · additional   → title_es, nombre de cada addOption
+     · custom       → label_es, presets[i].label_es
+     · labeltitle   → title_es
+     · group        → title_es (+ sus hijos aplican sus propias reglas)
+
+4. accordion_items
+   Campos nuevos:
+     - title_es   VARCHAR(255)  NULLABLE
+     - content_es TEXT          NULLABLE
+
+5. home_features
+   Campos nuevos:
+     - title_es       VARCHAR(255)  NULLABLE
+     - description_es TEXT          NULLABLE
+   Nota: no hay gestión de home_features en el CMS actualmente, se migra
+   la BD para preparar la futura UI.
+
+6. site_config
+   Campos nuevos:
+     - home_title_es          VARCHAR(255)  NULLABLE
+     - home_subtitle_es       TEXT          NULLABLE
+     - accordion_title_es     VARCHAR(255)  NULLABLE
+     - footer_payment_title_es VARCHAR(255) NULLABLE
+     - footer_copyright_es    TEXT          NULLABLE
+     - payment_disclaimer_es  TEXT          NULLABLE
+     - disclaimer_es          TEXT          NULLABLE
+
+7. policies
+   Campos nuevos:
+     - section_1_es  TEXT  NULLABLE
+     - section_2_es  TEXT  NULLABLE
+     - section_3_es  TEXT  NULLABLE
+     - section_4_es  TEXT  NULLABLE
+     - section_5_es  TEXT  NULLABLE
+     - section_6_es  TEXT  NULLABLE
+     - section_7_es  TEXT  NULLABLE
+     - section_8_es  TEXT  NULLABLE
+     - section_9_es  TEXT  NULLABLE
+     - section_10_es TEXT  NULLABLE
+
+================================================================================
+TABLAS EXCLUIDAS (con justificación)
+================================================================================
+  - games.title          → Nombres propios (League of Legends, Valorant, etc.)
+  - payment_methods.name → Marcas registradas (PayPal, Visa, etc.)
+  - site_config.logo_text → El logo es idéntico en ambos idiomas
+
+================================================================================
+PASO A PASO DE IMPLEMENTACIÓN
+================================================================================
+
+--- FASE 1: Migraciones SQL (ejecutar manualmente en Neon) ---
+
+Crear los siguientes archivos en /db/ y ejecutarlos en orden:
+
+  [1] 24_03_2026_i18n-categories.sql
+      ALTER TABLE categories ADD COLUMN IF NOT EXISTS name_es VARCHAR(255);
+      ALTER TABLE categories ADD COLUMN IF NOT EXISTS description_es TEXT;
+
+  [2] 24_03_2026_i18n-services.sql
+      ALTER TABLE services ADD COLUMN IF NOT EXISTS title_es VARCHAR(255);
+      ALTER TABLE services ADD COLUMN IF NOT EXISTS description_es TEXT[];
+      ALTER TABLE services ADD COLUMN IF NOT EXISTS service_points_es TEXT[];
+
+  [3] 24_03_2026_i18n-service-prices.sql
+      ALTER TABLE service_prices ADD COLUMN IF NOT EXISTS config_es JSONB;
+
+  [4] 24_03_2026_i18n-accordion-items.sql
+      ALTER TABLE accordion_items ADD COLUMN IF NOT EXISTS title_es VARCHAR(255);
+      ALTER TABLE accordion_items ADD COLUMN IF NOT EXISTS content_es TEXT;
+
+  [5] 24_03_2026_i18n-home-features.sql
+      ALTER TABLE home_features ADD COLUMN IF NOT EXISTS title_es VARCHAR(255);
+      ALTER TABLE home_features ADD COLUMN IF NOT EXISTS description_es TEXT;
+
+  [6] 24_03_2026_i18n-site-config.sql
+      ALTER TABLE site_config ADD COLUMN IF NOT EXISTS home_title_es VARCHAR(255);
+      ALTER TABLE site_config ADD COLUMN IF NOT EXISTS home_subtitle_es TEXT;
+      ALTER TABLE site_config ADD COLUMN IF NOT EXISTS accordion_title_es VARCHAR(255);
+      ALTER TABLE site_config ADD COLUMN IF NOT EXISTS footer_payment_title_es VARCHAR(255);
+      ALTER TABLE site_config ADD COLUMN IF NOT EXISTS footer_copyright_es TEXT;
+      ALTER TABLE site_config ADD COLUMN IF NOT EXISTS payment_disclaimer_es TEXT;
+      ALTER TABLE site_config ADD COLUMN IF NOT EXISTS disclaimer_es TEXT;
+
+  [7] 24_03_2026_i18n-policies.sql
+      ALTER TABLE policies
+        ADD COLUMN IF NOT EXISTS section_1_es  TEXT,
+        ADD COLUMN IF NOT EXISTS section_2_es  TEXT,
+        ADD COLUMN IF NOT EXISTS section_3_es  TEXT,
+        ADD COLUMN IF NOT EXISTS section_4_es  TEXT,
+        ADD COLUMN IF NOT EXISTS section_5_es  TEXT,
+        ADD COLUMN IF NOT EXISTS section_6_es  TEXT,
+        ADD COLUMN IF NOT EXISTS section_7_es  TEXT,
+        ADD COLUMN IF NOT EXISTS section_8_es  TEXT,
+        ADD COLUMN IF NOT EXISTS section_9_es  TEXT,
+        ADD COLUMN IF NOT EXISTS section_10_es TEXT;
+
+--- FASE 2: Tipos TypeScript ---
+
+  Archivo: src/types/index.ts
+  Agregar los campos opcionales _es en las interfaces:
+
+    Category     → name_es?: string | null
+                   description_es?: string | null
+
+    Service      → title_es?: string | null
+                   description_es?: string[] | null
+                   service_points_es?: string[] | null
+
+    ServicePrice → config_es?: Record<string, unknown> | null
+
+    AccordionItem → title_es?: string | null
+                    content_es?: string | null
+
+    SiteConfig   → home_title_es?: string | null
+                   home_subtitle_es?: string | null
+                   accordion_title_es?: string | null
+                   footer_payment_title_es?: string | null
+                   footer_copyright_es?: string | null
+                   payment_disclaimer_es?: string | null
+                   disclaimer_es?: string | null
+
+  Nota: policies no tiene interfaz propia en types/, se maneja inline
+  en la action, agregar los campos _es en el schema de esa action.
+
+--- FASE 3: Server Actions (Zod + queries) ---
+
+  Depende de: Fase 1 ejecutada en la BD y Fase 2 completada.
+
+  Para cada archivo de actions, actualizar:
+    a) Schema Zod → añadir campos _es como .optional().nullable()
+    b) Queries INSERT/UPDATE → incluir los campos _es
+    c) Queries SELECT → devolver los campos _es al cliente
+
+  Archivos a modificar:
+    · src/app/actions/categories.ts
+        Zod: name_es, description_es
+    · src/app/actions/services.ts
+        Zod: title_es, description_es (array), service_points_es (array)
+    · src/app/actions/servicePrices.ts
+        Zod: config_es (object/record)
+    · src/app/actions/accordion.ts
+        Zod: title_es, content_es
+    · src/app/actions/siteConfig.ts
+        Zod: los 7 campos _es de site_config
+    · src/app/actions/policies.ts
+        Zod: section_1_es … section_10_es
+
+--- FASE 4: UI del CMS — Formularios ---
+
+  Depende de: Fase 2 y Fase 3 completadas.
+
+  Patrón visual: campo en inglés (ya existente, sin modificar) + campo en
+  español inmediatamente debajo, con badge "(Spanish)" en la label, y
+  placeholder en español descriptivo. Todos opcionales en el formulario.
+
+  Archivos a modificar:
+
+    · src/components/forms/CategoryForm.tsx
+        + name_es (Input)
+        + description_es (Textarea)
+
+    · src/components/forms/ServiceForm.tsx
+        + title_es (Input)
+        + description_es[] (editor de array igual que description[])
+        + service_points_es[] (editor de array igual que service_points[])
+
+    · src/components/forms/price-editors/ (uno por tipo)
+        Cada editor debe mostrar un campo de texto _es para cada texto
+        visible al usuario final. El config_es se construye con la misma
+        forma que config pero solo con los campos de texto.
+        Editores afectados:
+          - BarEditor.tsx        → label_es
+          - BoxEditor.tsx        → options[i].label_es
+          - BoxtitleEditor.tsx   → options[i].label_es, options[i].data_es
+          - SelectorsEditor.tsx  → claves del objeto + options[i].label_es
+          - AdditionalEditor.tsx → title_es + labels de cada addOption
+          - CustomEditor.tsx     → label_es, presets[i].label_es
+          - LabeltitleEditor.tsx → title_es
+          - GroupEditor.tsx      → title_es
+
+    · src/components/forms/AccordionForm.tsx
+        + title_es (Input)
+        + content_es (Textarea)
+
+    · src/app/dashboard/config/ConfigForm.tsx
+        + home_title_es           (Input, sección Home)
+        + home_subtitle_es        (Textarea, sección Home)
+        + accordion_title_es      (Input, sección FAQ)
+        + footer_payment_title_es (Input, sección Footer)
+        + footer_copyright_es     (Textarea, sección Footer)
+        + payment_disclaimer_es   (Textarea, sección Footer)
+        + disclaimer_es           (Textarea, sección Footer)
+
+    · src/app/dashboard/policies/page.tsx
+        Por cada sección (1 a 10): agregar Textarea con section_N_es
+        debajo del Textarea en inglés correspondiente.
+
+================================================================================
+VERIFICACIÓN (checklist post-implementación)
+================================================================================
+  [ ] Los 7 archivos SQL ejecutados en Neon sin errores
+  [ ] Verificar columnas: \d categories | \d services | \d service_prices | etc.
+  [ ] Editar categoría en CMS → guardar name_es → reabrir y verificar carga
+  [ ] Editar servicio → guardar title_es + arrays description/points en ES
+  [ ] Editar componente de precio (tipo box) → guardar config_es JSONB
+  [ ] Editar site_config → comprobar los 7 campos _es
+  [ ] Editar políticas → comprobar las 10 secciones _es
+  [ ] Verificar que NINGÚN campo inglés existente fue alterado o perdió datos
+
+================================================================================
+CONSIDERACIÓN FUTURA (frontend Webcarry — fuera del alcance de esta fase)
+================================================================================
+  El proyecto Webcarry consumirá los campos _es en un plan separado.
+  Recomendación de implementación futura:
+    - Selector de idioma EN | ES en el frontend
+    - Al elegir ES: usar campo_es si no es null, fallback al inglés si es null
+    - No mostrar selector si no hay ningún campo _es rellenado (evitar UX rota)

@@ -14,27 +14,29 @@ import type { PriceComponentType } from '@/types/priceComponents';
 interface PriceComponentEditorProps {
   type: PriceComponentType;
   config: any;
+  configEs?: any;
   onChange: (config: any) => void;
+  onChangeEs?: (configEs: any) => void;
 }
 
-export const PriceComponentEditor = memo(({ type, config, onChange }: PriceComponentEditorProps) => {
+export const PriceComponentEditor = memo(({ type, config, configEs, onChange, onChangeEs }: PriceComponentEditorProps) => {
   switch (type) {
     case 'bar':
-      return <BarEditor config={config} onChange={onChange} />;
+      return <BarEditor config={config} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
     case 'box':
-      return <BoxEditor config={config} onChange={onChange} />;
+      return <BoxEditor config={config} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
     case 'selectors':
-      return <SelectorsEditor config={config} onChange={onChange} />;
+      return <SelectorsEditor config={config} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
     case 'additional':
-      return <AdditionalEditor config={config} onChange={onChange} />;
+      return <AdditionalEditor config={config} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
     case 'custom':
-      return <CustomEditor config={config} onChange={onChange} />;
+      return <CustomEditor config={config} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
     case 'boxtitle':
-      return <BoxTitleEditor config={config} onChange={onChange} />;
+      return <BoxTitleEditor config={config} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
     case 'labeltitle':
-      return <LabelTitleEditor config={config} onChange={onChange} />;
+      return <LabelTitleEditor config={config} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
     case 'group':
-      return <GroupEditor config={config} onChange={onChange} />;
+      return <GroupEditor config={config} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
     default:
       return null;
   }

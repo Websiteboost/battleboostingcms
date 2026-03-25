@@ -36,10 +36,9 @@ export function AccordionItem({ id, title, desc, icon, iconBg, children, openSec
         />
       </button>
       <div
-        className="overflow-hidden transition-[max-height] duration-300 ease-in-out"
-        style={{ maxHeight: isOpen ? '2000px' : '0px' }}
+        className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-150 opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}
       >
-        <div className="p-4 border-t border-slate-700/40 space-y-4">
+        <div className="overflow-y-auto max-h-150 p-4 border-t border-slate-700/40 space-y-4">
           {children}
         </div>
       </div>

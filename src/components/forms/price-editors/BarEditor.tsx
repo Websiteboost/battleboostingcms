@@ -9,9 +9,11 @@ import type { BarConfig, BarBreakpoint } from '@/types/priceComponents';
 interface BarEditorProps {
   config: BarConfig;
   onChange: (config: BarConfig) => void;
+  configEs?: Record<string, any> | null;
+  onChangeEs?: (configEs: any) => void;
 }
 
-export const BarEditor = memo(({ config, onChange }: BarEditorProps) => {
+export const BarEditor = memo(({ config, onChange, configEs, onChangeEs }: BarEditorProps) => {
   const mode = config.mode || 'simple';
   const progressValue = config.progressValue || 1;
   const defaultRange = config.defaultRange || { start: 1, end: 50 };
@@ -108,6 +110,13 @@ export const BarEditor = memo(({ config, onChange }: BarEditorProps) => {
         value={config.label || ''}
         onChange={(e) => onChange({ ...config, label: e.target.value })}
         placeholder="Ej: Select Level"
+      />
+      <Input
+        label={<>Etiqueta <span className="text-xs font-normal text-amber-400">(Spanish)</span></>}
+        value={configEs?.label ?? ''}
+        onChange={(e) => onChangeEs?.({ ...(configEs || {}), label: e.target.value })}
+        placeholder="Ej: Selecciona Nivel"
+        className="border-amber-500/40 focus:border-amber-400"
       />
 
       <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">

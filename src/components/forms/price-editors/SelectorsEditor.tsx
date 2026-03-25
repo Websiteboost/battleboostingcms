@@ -9,9 +9,11 @@ import type { SelectorsConfig, SelectorOption } from '@/types/priceComponents';
 interface SelectorsEditorProps {
   config: SelectorsConfig;
   onChange: (config: SelectorsConfig) => void;
+  configEs?: Record<string, any> | null;
+  onChangeEs?: (configEs: any) => void;
 }
 
-export const SelectorsEditor = memo(({ config, onChange }: SelectorsEditorProps) => {
+export const SelectorsEditor = memo(({ config, onChange, configEs, onChangeEs }: SelectorsEditorProps) => {
   const selectors = Object.entries(config);
 
   const addSelector = () => {
@@ -50,6 +52,19 @@ export const SelectorsEditor = memo(({ config, onChange }: SelectorsEditorProps)
     updateSelectorOptions(title, config[title].filter((_, i) => i !== index));
   };
 
+  const updateSelectorTitleEs = (selectorIndex: number, titleEs: string) => {
+    const titles = [...(configEs?._selector_titles_es || selectors.map(() => ''))];
+    titles[selectorIndex] = titleEs;
+    onChangeEs?.({ ...(configEs || {}), _selector_titles_es: titles });
+  };
+
+  const updateOptionLabelEs = (selectorTitle: string, optionIndex: number, label: string) => {
+    const currentOpts = configEs?.[selectorTitle] || config[selectorTitle].map(() => ({}));
+    const newOpts = [...currentOpts];
+    newOpts[optionIndex] = { ...newOpts[optionIndex], label };
+    onChangeEs?.({ ...(configEs || {}), [selectorTitle]: newOpts });
+  };
+
   return (
     <div className="space-y-4 p-4 bg-slate-800/30 rounded-lg border border-cyber-pink/30">
       <h4 className="text-sm font-medium text-cyber-pink">Selectores Personalizados (Dropdowns)</h4>
@@ -70,29 +85,45 @@ export const SelectorsEditor = memo(({ config, onChange }: SelectorsEditorProps)
               </Button>
             )}
           </div>
+          <Input
+            label={<>Título del Selector <span className="text-xs font-normal text-amber-400">(Spanish)</span></>}
+            value={configEs?._selector_titles_es?.[selectorIndex] ?? ''}
+            onChange={(e) => updateSelectorTitleEs(selectorIndex, e.target.value)}
+            placeholder="Ej: Elige Dificultad"
+            className="border-amber-500/40 focus:border-amber-400"
+          />
 
           {options.map((option, index) => (
-            <div key={index} className="flex gap-2">
+            <div key={index} className="space-y-1.5">
+              <div className="flex gap-2">
+                <Input
+                  label={`Opción ${index + 1}`}
+                  value={option.label}
+                  onChange={(e) => updateOption(title, index, { ...option, label: e.target.value })}
+                  placeholder="Ej: Beginner"
+                  className="flex-1"
+                />
+                <Input
+                  label="Precio"
+                  type="number"
+                  step="0.01"
+                  value={option.value}
+                  onChange={(e) => updateOption(title, index, { ...option, value: parseFloat(e.target.value) || 0 })}
+                  className="w-24"
+                />
+                {options.length > 1 && (
+                  <Button type="button" variant="danger" onClick={() => removeOption(title, index)} className="px-3! self-end">
+                    <Trash2 size={16} />
+                  </Button>
+                )}
+              </div>
               <Input
-                label={`Opción ${index + 1}`}
-                value={option.label}
-                onChange={(e) => updateOption(title, index, { ...option, label: e.target.value })}
-                placeholder="Ej: Beginner"
-                className="flex-1"
+                label={<>Opción {index + 1} <span className="text-xs font-normal text-amber-400">(Spanish)</span></>}
+                value={configEs?.[title]?.[index]?.label ?? ''}
+                onChange={(e) => updateOptionLabelEs(title, index, e.target.value)}
+                placeholder={`Opción ${index + 1} en español`}
+                className="border-amber-500/40 focus:border-amber-400"
               />
-              <Input
-                label="Precio"
-                type="number"
-                step="0.01"
-                value={option.value}
-                onChange={(e) => updateOption(title, index, { ...option, value: parseFloat(e.target.value) || 0 })}
-                className="w-24"
-              />
-              {options.length > 1 && (
-                <Button type="button" variant="danger" onClick={() => removeOption(title, index)} className="px-3! self-end">
-                  <Trash2 size={16} />
-                </Button>
-              )}
             </div>
           ))}
 

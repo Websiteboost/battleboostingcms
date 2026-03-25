@@ -9,9 +9,11 @@ import type { CustomConfig } from '@/types/priceComponents';
 interface CustomEditorProps {
   config: CustomConfig;
   onChange: (config: CustomConfig) => void;
+  configEs?: Record<string, any> | null;
+  onChangeEs?: (configEs: any) => void;
 }
 
-export const CustomEditor = memo(({ config, onChange }: CustomEditorProps) => {
+export const CustomEditor = memo(({ config, onChange, configEs, onChangeEs }: CustomEditorProps) => {
   const presets = config.presets || [];
 
   const addPreset = () => onChange({ ...config, presets: [...presets, 0] });
@@ -36,6 +38,13 @@ export const CustomEditor = memo(({ config, onChange }: CustomEditorProps) => {
         onChange={(e) => onChange({ ...config, label: e.target.value })}
         placeholder="Ej: Select Amount"
         required
+      />
+      <Input
+        label={<>Etiqueta <span className="text-xs font-normal text-amber-400">(Spanish)</span></>}
+        value={configEs?.label ?? ''}
+        onChange={(e) => onChangeEs?.({ ...(configEs || {}), label: e.target.value })}
+        placeholder="Ej: Selecciona Monto"
+        className="border-amber-500/40 focus:border-amber-400"
       />
 
       <div className="space-y-2">

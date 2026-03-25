@@ -8,6 +8,8 @@ interface AccordionFormData {
   title: string;
   content: string;
   display_order: number;
+  title_es?: string | null;
+  content_es?: string | null;
 }
 
 interface AccordionFormProps {
@@ -30,6 +32,8 @@ export const AccordionForm = memo(function AccordionForm({
     title: initialData?.title || '',
     content: initialData?.content || '',
     display_order: initialData?.display_order || maxOrder + 1,
+    title_es: initialData?.title_es || '',
+    content_es: initialData?.content_es || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -41,6 +45,8 @@ export const AccordionForm = memo(function AccordionForm({
         title: initialData.title || '',
         content: initialData.content || '',
         display_order: initialData.display_order || maxOrder + 1,
+        title_es: initialData.title_es || '',
+        content_es: initialData.content_es || '',
       });
     }
   }, [initialData, maxOrder]);
@@ -93,6 +99,20 @@ export const AccordionForm = memo(function AccordionForm({
       </div>
 
       <div>
+        <label htmlFor="title_es" className="block text-sm font-medium text-white mb-2">
+          Título <span className="text-xs font-normal text-amber-400">(Spanish)</span>
+        </label>
+        <input
+          type="text"
+          id="title_es"
+          value={formData.title_es || ''}
+          onChange={(e) => handleChange('title_es', e.target.value)}
+          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-700 border border-amber-500/40 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 transition-all text-sm sm:text-base"
+          placeholder="¿Cuál es tu pregunta? (en español)"
+        />
+      </div>
+
+      <div>
         <label htmlFor="content" className="block text-sm font-medium text-white mb-2">
           Respuesta <span className="text-cyber-purple">*</span>
         </label>
@@ -107,6 +127,23 @@ export const AccordionForm = memo(function AccordionForm({
         />
         <p className="mt-1 text-xs text-gray-400">
           {formData.content.length} caracteres
+        </p>
+      </div>
+
+      <div>
+        <label htmlFor="content_es" className="block text-sm font-medium text-white mb-2">
+          Respuesta <span className="text-xs font-normal text-amber-400">(Spanish)</span>
+        </label>
+        <textarea
+          id="content_es"
+          value={formData.content_es || ''}
+          onChange={(e) => handleChange('content_es', e.target.value)}
+          rows={6}
+          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-700 border border-amber-500/40 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 transition-all text-sm sm:text-base resize-none"
+          placeholder="Escribe la respuesta en español..."
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          {(formData.content_es || '').length} caracteres
         </p>
       </div>
 

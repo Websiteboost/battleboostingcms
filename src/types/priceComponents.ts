@@ -115,6 +115,7 @@ export interface LabelTitleConfig {
 export interface GroupChild {
   type: ChildComponentType;    // No permite grupos anidados
   config: PriceComponentConfig;
+  config_es?: Record<string, any> | null;
   display_order?: number;
   required?: boolean;
   estimated_time?: number;     // Tiempo estimado en minutos (0 = no aplica)
@@ -148,6 +149,7 @@ export interface PriceComponent {
   service_id: string;               // ID del servicio al que pertenece
   type: PriceComponentType;         // Tipo de componente
   config: PriceComponentConfig;     // Configuración específica del tipo
+  config_es?: Record<string, any> | null; // Misma forma que config pero solo campos de texto en español
   display_order?: number;           // Orden de visualización
   required?: boolean;               // Si el componente es obligatorio de rellenar en el front
   estimated_time?: number;          // Tiempo estimado en minutos (0 = no aplica)

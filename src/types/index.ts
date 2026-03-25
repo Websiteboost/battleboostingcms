@@ -20,6 +20,8 @@ export interface Category {
   description: string;
   icon: string;
   created_at: Date;
+  name_es?: string | null;
+  description_es?: string | null;
 }
 
 export interface Service {
@@ -32,6 +34,9 @@ export interface Service {
   service_points?: string[];
   created_at: Date;
   updated_at: Date;
+  title_es?: string | null;
+  description_es?: string[] | null;
+  service_points_es?: string[] | null;
 }
 
 export interface ServicePrice {
@@ -39,6 +44,7 @@ export interface ServicePrice {
   service_id: string;
   type: 'bar' | 'box' | 'custom' | 'selectors' | 'additional';
   config: Record<string, any>;
+  config_es?: Record<string, any> | null;
 }
 
 export interface ServiceGame {

@@ -53,15 +53,15 @@ const getChildDefaultConfig = (type: ChildComponentType): any => {
   }
 };
 
-function renderChildEditor(child: GroupChild, onChange: (config: any) => void) {
+function renderChildEditor(child: GroupChild, onChange: (config: any) => void, configEs?: any, onChangeEs?: (es: any) => void) {
   switch (child.type) {
-    case 'bar':        return <BarEditor config={child.config as BarConfig} onChange={onChange} />;
-    case 'box':        return <BoxEditor config={child.config as BoxConfig} onChange={onChange} />;
-    case 'selectors':  return <SelectorsEditor config={child.config as SelectorsConfig} onChange={onChange} />;
-    case 'additional': return <AdditionalEditor config={child.config as AdditionalConfig} onChange={onChange} />;
-    case 'custom':     return <CustomEditor config={child.config as CustomConfig} onChange={onChange} />;
-    case 'boxtitle':   return <BoxTitleEditor config={child.config as BoxTitleConfig} onChange={onChange} />;
-    case 'labeltitle': return <LabelTitleEditor config={child.config as LabelTitleConfig} onChange={onChange} />;
+    case 'bar':        return <BarEditor config={child.config as BarConfig} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
+    case 'box':        return <BoxEditor config={child.config as BoxConfig} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
+    case 'selectors':  return <SelectorsEditor config={child.config as SelectorsConfig} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
+    case 'additional': return <AdditionalEditor config={child.config as AdditionalConfig} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
+    case 'custom':     return <CustomEditor config={child.config as CustomConfig} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
+    case 'boxtitle':   return <BoxTitleEditor config={child.config as BoxTitleConfig} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
+    case 'labeltitle': return <LabelTitleEditor config={child.config as LabelTitleConfig} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
     default:           return null;
   }
 }
@@ -69,9 +69,11 @@ function renderChildEditor(child: GroupChild, onChange: (config: any) => void) {
 interface GroupEditorProps {
   config: GroupConfig;
   onChange: (config: GroupConfig) => void;
+  configEs?: Record<string, any> | null;
+  onChangeEs?: (configEs: any) => void;
 }
 
-export const GroupEditor = memo(({ config, onChange }: GroupEditorProps) => {
+export const GroupEditor = memo(({ config, onChange, configEs, onChangeEs }: GroupEditorProps) => {
   const [expandedChild, setExpandedChild] = useState<number | null>(null);
 
   const addChild = useCallback((type: ChildComponentType) => {
@@ -85,6 +87,13 @@ export const GroupEditor = memo(({ config, onChange }: GroupEditorProps) => {
     newChildren[index] = { ...newChildren[index], config: childConfig };
     onChange({ ...config, children: newChildren });
   }, [config, onChange]);
+
+  const updateChildConfigEs = useCallback((index: number, childEs: any) => {
+    const currentChildren = configEs?.children || config.children.map(() => ({}));
+    const newChildren = [...currentChildren];
+    newChildren[index] = { ...newChildren[index], config_es: childEs };
+    onChangeEs?.({ ...(configEs || {}), children: newChildren });
+  }, [config.children, configEs, onChangeEs]);
 
   const updateChildRequired = useCallback((index: number, required: boolean) => {
     const newChildren = [...config.children];
@@ -131,6 +140,13 @@ export const GroupEditor = memo(({ config, onChange }: GroupEditorProps) => {
           onChange={(e) => onChange({ ...config, title: e.target.value })}
           placeholder="Ej: Opciones Avanzadas"
           required
+        />
+        <Input
+          label={<>Título del Grupo <span className="text-xs font-normal text-amber-400">(Spanish)</span></>}
+          value={configEs?.title ?? ''}
+          onChange={(e) => onChangeEs?.({ ...(configEs || {}), title: e.target.value })}
+          placeholder="Ej: Opciones Avanzadas"
+          className="border-amber-500/40 focus:border-amber-400"
         />
         <div className="flex flex-col gap-1.5">
           <span className="text-xs sm:text-sm font-medium text-gray-200">Estado inicial en el front</span>
@@ -250,7 +266,12 @@ export const GroupEditor = memo(({ config, onChange }: GroupEditorProps) => {
                     />
                     <span className="text-xs text-gray-500">(0 = no aplica)</span>
                   </div>
-                  {renderChildEditor(child, (cfg) => updateChildConfig(index, cfg))}
+                  {renderChildEditor(
+                    child,
+                    (cfg) => updateChildConfig(index, cfg),
+                    configEs?.children?.[index]?.config_es,
+                    (childEs) => updateChildConfigEs(index, childEs),
+                  )}
                 </div>
               )}
             </div>

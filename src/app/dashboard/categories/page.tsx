@@ -358,7 +358,9 @@ export default function CategoriesPage() {
             key={editingCategory?.id || 'new'}
             initialData={editingCategory ? {
               name: editingCategory.name,
+              name_es: editingCategory.name_es ?? '',
               description: editingCategory.description,
+              description_es: editingCategory.description_es ?? '',
               icon: editingCategory.icon,
               gameIds: (editingCategory as any).gameIds || [],
             } : undefined}

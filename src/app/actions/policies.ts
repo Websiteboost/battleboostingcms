@@ -42,6 +42,16 @@ export type Policies = {
   section_8?: string;
   section_9?: string;
   section_10?: string;
+  section_1_es?: string;
+  section_2_es?: string;
+  section_3_es?: string;
+  section_4_es?: string;
+  section_5_es?: string;
+  section_6_es?: string;
+  section_7_es?: string;
+  section_8_es?: string;
+  section_9_es?: string;
+  section_10_es?: string;
   updated_at?: Date;
 };
 
@@ -99,15 +109,29 @@ export async function updatePolicies(data: any) {
     const section_9 = data.section_9 ? combineSection(data.section_9) : null;
     const section_10 = data.section_10 ? combineSection(data.section_10) : null;
 
-    // Usar UPSERT (INSERT ... ON CONFLICT)
+    const section_1_es = data.section_1_es ? combineSection(data.section_1_es) : null;
+    const section_2_es = data.section_2_es ? combineSection(data.section_2_es) : null;
+    const section_3_es = data.section_3_es ? combineSection(data.section_3_es) : null;
+    const section_4_es = data.section_4_es ? combineSection(data.section_4_es) : null;
+    const section_5_es = data.section_5_es ? combineSection(data.section_5_es) : null;
+    const section_6_es = data.section_6_es ? combineSection(data.section_6_es) : null;
+    const section_7_es = data.section_7_es ? combineSection(data.section_7_es) : null;
+    const section_8_es = data.section_8_es ? combineSection(data.section_8_es) : null;
+    const section_9_es = data.section_9_es ? combineSection(data.section_9_es) : null;
+    const section_10_es = data.section_10_es ? combineSection(data.section_10_es) : null;
+
     await sql`
       INSERT INTO policies (
         id, section_1, section_2, section_3, section_4, section_5,
-        section_6, section_7, section_8, section_9, section_10
+        section_6, section_7, section_8, section_9, section_10,
+        section_1_es, section_2_es, section_3_es, section_4_es, section_5_es,
+        section_6_es, section_7_es, section_8_es, section_9_es, section_10_es
       )
       VALUES (
         1, ${section_1}, ${section_2}, ${section_3}, ${section_4}, ${section_5},
-        ${section_6}, ${section_7}, ${section_8}, ${section_9}, ${section_10}
+        ${section_6}, ${section_7}, ${section_8}, ${section_9}, ${section_10},
+        ${section_1_es}, ${section_2_es}, ${section_3_es}, ${section_4_es}, ${section_5_es},
+        ${section_6_es}, ${section_7_es}, ${section_8_es}, ${section_9_es}, ${section_10_es}
       )
       ON CONFLICT (id)
       DO UPDATE SET
@@ -121,6 +145,16 @@ export async function updatePolicies(data: any) {
         section_8 = ${section_8},
         section_9 = ${section_9},
         section_10 = ${section_10},
+        section_1_es = ${section_1_es},
+        section_2_es = ${section_2_es},
+        section_3_es = ${section_3_es},
+        section_4_es = ${section_4_es},
+        section_5_es = ${section_5_es},
+        section_6_es = ${section_6_es},
+        section_7_es = ${section_7_es},
+        section_8_es = ${section_8_es},
+        section_9_es = ${section_9_es},
+        section_10_es = ${section_10_es},
         updated_at = CURRENT_TIMESTAMP
     `;
     

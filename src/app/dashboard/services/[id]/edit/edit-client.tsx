@@ -69,11 +69,14 @@ export function EditServiceClient({ service, categories, games }: Props) {
           key={service.id}
           initialData={{
             title: service.title,
+            title_es: service.title_es ?? '',
             category_id: service.category_id,
             price: service.price,
             image: service.image,
             description: service.description,
+            description_es: (service as any).description_es || [''],
             service_points: (service as any).service_points || [],
+            service_points_es: (service as any).service_points_es || [''],
             priceComponents: service.priceComponents,
             gameIds: service.gameIds,
           }}

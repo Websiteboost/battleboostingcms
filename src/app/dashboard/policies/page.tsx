@@ -40,6 +40,16 @@ function parsePoliciesForForm(policies: Policies | null): Record<string, PolicyS
       section_8: null,
       section_9: null,
       section_10: null,
+      section_1_es: null,
+      section_2_es: null,
+      section_3_es: null,
+      section_4_es: null,
+      section_5_es: null,
+      section_6_es: null,
+      section_7_es: null,
+      section_8_es: null,
+      section_9_es: null,
+      section_10_es: null,
     };
   }
 
@@ -54,6 +64,16 @@ function parsePoliciesForForm(policies: Policies | null): Record<string, PolicyS
     section_8: parseSection(policies.section_8 || null),
     section_9: parseSection(policies.section_9 || null),
     section_10: parseSection(policies.section_10 || null),
+    section_1_es: parseSection(policies.section_1_es || null),
+    section_2_es: parseSection(policies.section_2_es || null),
+    section_3_es: parseSection(policies.section_3_es || null),
+    section_4_es: parseSection(policies.section_4_es || null),
+    section_5_es: parseSection(policies.section_5_es || null),
+    section_6_es: parseSection(policies.section_6_es || null),
+    section_7_es: parseSection(policies.section_7_es || null),
+    section_8_es: parseSection(policies.section_8_es || null),
+    section_9_es: parseSection(policies.section_9_es || null),
+    section_10_es: parseSection(policies.section_10_es || null),
   };
 }
 
@@ -69,6 +89,16 @@ export default function PoliciesPage() {
     section_8: null,
     section_9: null,
     section_10: null,
+    section_1_es: null,
+    section_2_es: null,
+    section_3_es: null,
+    section_4_es: null,
+    section_5_es: null,
+    section_6_es: null,
+    section_7_es: null,
+    section_8_es: null,
+    section_9_es: null,
+    section_10_es: null,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -174,7 +204,7 @@ export default function PoliciesPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Secciones de Políticas */}
-        {Object.keys(sections).map((sectionKey, index) => {
+        {Object.keys(sections).filter(k => !k.endsWith('_es')).map((sectionKey, index) => {
           const section = sections[sectionKey];
           const isExpanded = expandedSections.has(sectionKey);
           const sectionNumber = index + 1;
@@ -246,6 +276,30 @@ export default function PoliciesPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Versión Spanish */}
+                  <div className="border-t border-amber-500/20 pt-4 mt-2 space-y-3">
+                    <p className="text-xs font-semibold text-amber-400">Versión en Español</p>
+                    <Input
+                      label={<>Título de la Sección {sectionNumber} <span className="text-xs font-normal text-amber-400">(Spanish)</span></>}
+                      value={sections[`${sectionKey}_es`]?.title || ''}
+                      onChange={(e) => handleSectionChange(`${sectionKey}_es`, 'title', e.target.value)}
+                      placeholder={`Ej: ${sectionNumber}. Acuerdo de Servicio`}
+                      className="border-amber-500/40 focus:border-amber-400"
+                    />
+                    <div className="space-y-2">
+                      <label className="block text-xs sm:text-sm font-medium text-amber-300">
+                        Contenido de la Sección {sectionNumber} <span className="text-xs font-normal text-amber-400">(Spanish)</span>
+                      </label>
+                      <textarea
+                        value={sections[`${sectionKey}_es`]?.content || ''}
+                        onChange={(e) => handleSectionChange(`${sectionKey}_es`, 'content', e.target.value)}
+                        rows={6}
+                        placeholder="Escribe el contenido en español..."
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-800/50 border border-amber-500/40 rounded-lg text-white text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 transition-all duration-300 resize-vertical"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
             </Card>

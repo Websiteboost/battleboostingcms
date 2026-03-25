@@ -45,23 +45,29 @@ import type {
 interface ServiceFormProps {
   initialData?: {
     title: string;
+    title_es?: string | null;
     category_id: string;
     price: number;
     image: string;
     description: string[];
+    description_es?: string[] | null;
     service_points?: string[];
+    service_points_es?: string[] | null;
     priceComponents?: PriceComponent[];
     gameIds?: string[];
   };
   categories: Array<{ id: string; name: string }>;
   games: Game[];
   onSubmit: (data: { 
-    title: string; 
+    title: string;
+    title_es?: string | null;
     category_id: string; 
     price: number; 
     image: string; 
     description: string[];
+    description_es?: string[] | null;
     service_points?: string[];
+    service_points_es?: string[] | null;
     priceComponents: Omit<PriceComponent, 'id' | 'created_at'>[];
     gameIds: string[];
   }) => Promise<void>;
@@ -102,11 +108,14 @@ const getDefaultConfig = (type: PriceComponentType): any => {
 export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onCancel, isEditing }: ServiceFormProps) => {
   const [formData, setFormData] = useState(initialData || {
     title: '',
+    title_es: '' as string | null | undefined,
     category_id: '',
     price: 0,
     image: '',
     description: [''],
+    description_es: [''] as string[] | null | undefined,
     service_points: [''],
+    service_points_es: [''] as string[] | null | undefined,
     priceComponents: [],
     gameIds: [],
   });
@@ -187,7 +196,9 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
         ...formData,
         price: typeof formData.price === 'string' ? parseFloat(formData.price) : formData.price,
         description: cleanedDescriptions,
+        description_es: (formData.description_es || []).filter(d => d.trim() !== ''),
         service_points: (formData.service_points || []).filter(p => p.trim() !== ''),
+        service_points_es: (formData.service_points_es || []).filter(p => p.trim() !== ''),
         priceComponents: (formData.priceComponents || []).map(({ id, created_at, ...rest }, i) => ({
           ...rest,
           display_order: i,
@@ -206,6 +217,10 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
 
   const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, title: e.target.value }));
+  }, []);
+
+  const handleTitleEsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, title_es: e.target.value }));
   }, []);
 
   const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -239,6 +254,25 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
     }));
   }, []);
 
+  const handleDescriptionEsChange = useCallback((index: number, value: string) => {
+    setFormData(prev => {
+      const newDescriptions = [...(prev.description_es || [''])];
+      newDescriptions[index] = value;
+      return { ...prev, description_es: newDescriptions };
+    });
+  }, []);
+
+  const addDescriptionEs = useCallback(() => {
+    setFormData(prev => ({ ...prev, description_es: [...(prev.description_es || ['']), ''] }));
+  }, []);
+
+  const removeDescriptionEs = useCallback((index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      description_es: (prev.description_es || ['']).filter((_, i) => i !== index),
+    }));
+  }, []);
+
   // Service Points handlers
   const handleServicePointChange = useCallback((index: number, value: string) => {
     setFormData(prev => {
@@ -256,6 +290,25 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
     setFormData(prev => ({
       ...prev,
       service_points: (prev.service_points || ['']).filter((_, i) => i !== index),
+    }));
+  }, []);
+
+  const handleServicePointEsChange = useCallback((index: number, value: string) => {
+    setFormData(prev => {
+      const newPoints = [...(prev.service_points_es || [''])];
+      newPoints[index] = value;
+      return { ...prev, service_points_es: newPoints };
+    });
+  }, []);
+
+  const addServicePointEs = useCallback(() => {
+    setFormData(prev => ({ ...prev, service_points_es: [...(prev.service_points_es || ['']), ''] }));
+  }, []);
+
+  const removeServicePointEs = useCallback((index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      service_points_es: (prev.service_points_es || ['']).filter((_, i) => i !== index),
     }));
   }, []);
 
@@ -281,6 +334,14 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
         ...newComponents[index],
         config,
       };
+      return { ...prev, priceComponents: newComponents };
+    });
+  }, []);
+
+  const updatePriceComponentConfigEs = useCallback((index: number, configEs: any) => {
+    setFormData(prev => {
+      const newComponents = [...(prev.priceComponents || [])];
+      newComponents[index] = { ...newComponents[index], config_es: configEs };
       return { ...prev, priceComponents: newComponents };
     });
   }, []);
@@ -363,6 +424,14 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
           onChange={handleTitleChange}
           required
           placeholder="Ej: Level 1-50 Express"
+        />
+
+        <Input
+          label={<>Título <span className="text-xs font-normal text-amber-400">(Spanish)</span></>}
+          value={formData.title_es ?? ''}
+          onChange={handleTitleEsChange}
+          placeholder="Ej: Level 1-50 Express"
+          className="border-amber-500/40 focus:border-amber-400"
         />
 
       <div className="w-full">
@@ -461,6 +530,44 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
         </Button>
       </div>
 
+      {/* Descripciones (Spanish) */}
+      <div className="space-y-3 p-4 bg-slate-900/50 rounded-lg border border-amber-500/40">
+        <h3 className="text-lg font-bold text-white mb-1">
+          Descripciones / Características <span className="text-sm font-normal text-amber-400">(Spanish)</span>
+        </h3>
+        <p className="text-xs text-amber-400/70 mb-3">Versión en español de cada característica</p>
+        
+        {(formData.description_es || ['']).map((desc, index) => (
+          <div key={index} className="flex gap-2">
+            <Input
+              value={desc}
+              onChange={(e) => handleDescriptionEsChange(index, e.target.value)}
+              placeholder={`Característica ${index + 1} (Spanish)`}
+              className="flex-1 border-amber-500/40 focus:border-amber-400"
+            />
+            {(formData.description_es || ['']).length > 1 && (
+              <Button
+                type="button"
+                variant="danger"
+                onClick={() => removeDescriptionEs(index)}
+                className="px-3!"
+              >
+                <Trash2 size={16} />
+              </Button>
+            )}
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={addDescriptionEs}
+          className="w-full border-amber-500/40! text-amber-400!"
+        >
+          <Plus size={16} className="inline mr-2" />
+          Agregar Descripción (Spanish)
+        </Button>
+      </div>
+
       {/* Service Points */}
       <div className="space-y-3 p-4 bg-slate-900/50 rounded-lg border border-slate-700">
         <h3 className="text-lg font-bold text-white mb-3">Service Points (Información Adicional)</h3>
@@ -494,6 +601,44 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
         >
           <Plus size={16} className="inline mr-2" />
           Agregar Service Point
+        </Button>
+      </div>
+
+      {/* Service Points (Spanish) */}
+      <div className="space-y-3 p-4 bg-slate-900/50 rounded-lg border border-amber-500/40">
+        <h3 className="text-lg font-bold text-white mb-1">
+          Service Points <span className="text-sm font-normal text-amber-400">(Spanish)</span>
+        </h3>
+        <p className="text-xs text-amber-400/70 mb-3">Versión en español de cada punto adicional</p>
+        
+        {(formData.service_points_es || ['']).map((point, index) => (
+          <div key={index} className="flex gap-2">
+            <Input
+              value={point}
+              onChange={(e) => handleServicePointEsChange(index, e.target.value)}
+              placeholder={`Service Point ${index + 1} (Spanish)`}
+              className="flex-1 border-amber-500/40 focus:border-amber-400"
+            />
+            {(formData.service_points_es || ['']).length > 1 && (
+              <Button
+                type="button"
+                variant="danger"
+                onClick={() => removeServicePointEs(index)}
+                className="px-3!"
+              >
+                <Trash2 size={16} />
+              </Button>
+            )}
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={addServicePointEs}
+          className="w-full border-amber-500/40! text-amber-400!"
+        >
+          <Plus size={16} className="inline mr-2" />
+          Agregar Service Point (Spanish)
         </Button>
       </div>
 
@@ -631,7 +776,9 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
                     <PriceComponentEditor
                       type={component.type}
                       config={component.config}
+                      configEs={component.config_es}
                       onChange={(config) => updatePriceComponent(index, config)}
+                      onChangeEs={(configEs) => updatePriceComponentConfigEs(index, configEs)}
                     />
                   </div>
                 )}

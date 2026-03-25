@@ -14,12 +14,14 @@ const categorySchema = z.object({
   description: z.string().min(1, { message: "La descripción es requerida" }),
   icon: z.string().min(1, { message: "El icono es requerido" }),
   gameIds: z.array(z.string()).optional(),
+  name_es: z.string().optional().nullable(),
+  description_es: z.string().optional().nullable(),
 });
 
 export async function getCategories() {
   try {
     const result = await sql`
-      SELECT id, name, description, icon, display_order, created_at
+      SELECT id, name, description, icon, display_order, created_at, name_es, description_es
       FROM categories
       ORDER BY display_order ASC, name ASC
     `;
@@ -50,7 +52,7 @@ export async function createCategory(data: z.infer<typeof categorySchema>) {
     };
   }
 
-  const { name, description, icon, gameIds } = validatedFields.data;
+    const { name, description, icon, gameIds, name_es, description_es } = validatedFields.data;
 
   try {
     // Generar ID único basado en el nombre
@@ -80,8 +82,8 @@ export async function createCategory(data: z.infer<typeof categorySchema>) {
 
     // Crear la categoría
     await sql`
-      INSERT INTO categories (id, name, description, icon, display_order)
-      VALUES (${categoryId}, ${name}, ${description}, ${icon}, ${nextOrder})
+      INSERT INTO categories (id, name, description, icon, display_order, name_es, description_es)
+      VALUES (${categoryId}, ${name}, ${description}, ${icon}, ${nextOrder}, ${name_es ?? null}, ${description_es ?? null})
     `;
 
     // Si hay juegos, asociarlos
@@ -117,7 +119,7 @@ export async function updateCategory(data: z.infer<typeof categorySchema>) {
     };
   }
 
-  const { id, name, description, icon, gameIds } = validatedFields.data;
+  const { id, name, description, icon, gameIds, name_es, description_es } = validatedFields.data;
 
   if (!id) {
     return { success: false, error: 'ID de la categoría es requerido' };
@@ -127,7 +129,8 @@ export async function updateCategory(data: z.infer<typeof categorySchema>) {
     // Actualizar la categoría
     await sql`
       UPDATE categories
-      SET name = ${name}, description = ${description}, icon = ${icon}
+      SET name = ${name}, description = ${description}, icon = ${icon},
+          name_es = ${name_es ?? null}, description_es = ${description_es ?? null}
       WHERE id = ${id}
     `;
 
