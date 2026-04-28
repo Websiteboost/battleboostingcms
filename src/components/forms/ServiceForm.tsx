@@ -23,14 +23,16 @@ const COMPONENT_LABELS: Record<string, string> = {
   boxtitle: 'Caja Título',
   labeltitle: 'Separador',
   group: 'Grupo',
+  'tab-group': 'Grup. Tabs',
+  'select-group': 'Grup. Select',
 };
 
 // Tipos que producen un valor numérico al total (aplican descuento)
 const DISCOUNT_COMPONENT_TYPES = new Set(['bar', 'box', 'selectors', 'additional', 'custom']);
 import toast from 'react-hot-toast';
 import type { Game } from '@/types';
-import type { 
-  PriceComponentType, 
+import type {
+  PriceComponentType,
   PriceComponent,
   BarConfig,
   BoxConfig,
@@ -40,6 +42,8 @@ import type {
   BoxTitleConfig,
   LabelTitleConfig,
   GroupConfig,
+  TabGroupConfig,
+  SelectGroupConfig,
 } from '@/types/priceComponents';
 
 interface ServiceFormProps {
@@ -102,6 +106,10 @@ const getDefaultConfig = (type: PriceComponentType): any => {
       return { title: 'Nueva Sección' } as LabelTitleConfig;
     case 'group':
       return { title: 'Nuevo Grupo', collapseByDefault: false, children: [] } as GroupConfig;
+    case 'tab-group':
+      return { tabs: [{ title: 'Pestaña 1', children: [] }] } as TabGroupConfig;
+    case 'select-group':
+      return { label: 'Selecciona una opción', options: [{ title: 'Opción 1', children: [] }] } as SelectGroupConfig;
   }
 };
 
@@ -858,6 +866,22 @@ export const ServiceForm = memo(({ initialData, categories, games, onSubmit, onC
             className="text-xs py-3 border-amber-500/40! text-amber-400!"
           >
             + Grupo
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => addPriceComponent('tab-group')}
+            className="text-xs py-3 border-cyber-cyan/40! text-cyber-cyan!"
+          >
+            + Grup. Tabs
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => addPriceComponent('select-group')}
+            className="text-xs py-3 border-cyber-pink/40! text-cyber-pink!"
+          >
+            + Grup. Select
           </Button>
         </div>
       </div>

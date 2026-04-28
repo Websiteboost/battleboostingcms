@@ -9,6 +9,8 @@ import { CustomEditor } from './price-editors/CustomEditor';
 import { BoxTitleEditor } from './price-editors/BoxTitleEditor';
 import { LabelTitleEditor } from './price-editors/LabelTitleEditor';
 import { GroupEditor } from './price-editors/GroupEditor';
+import { TabGroupEditor } from './price-editors/TabGroupEditor';
+import { SelectGroupEditor } from './price-editors/SelectGroupEditor';
 import type { PriceComponentType } from '@/types/priceComponents';
 
 interface PriceComponentEditorProps {
@@ -37,6 +39,10 @@ export const PriceComponentEditor = memo(({ type, config, configEs, onChange, on
       return <LabelTitleEditor config={config} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
     case 'group':
       return <GroupEditor config={config} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
+    case 'tab-group':
+      return <TabGroupEditor config={config} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
+    case 'select-group':
+      return <SelectGroupEditor config={config} onChange={onChange} configEs={configEs} onChangeEs={onChangeEs} />;
     default:
       return null;
   }

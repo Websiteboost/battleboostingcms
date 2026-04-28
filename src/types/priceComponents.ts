@@ -1,9 +1,9 @@
 // Tipos para los componentes de precio dinámico basados en GUIA-COMPONENTES.txt
 
-export type PriceComponentType = 'bar' | 'box' | 'custom' | 'selectors' | 'additional' | 'boxtitle' | 'labeltitle' | 'group';
+export type PriceComponentType = 'bar' | 'box' | 'custom' | 'selectors' | 'additional' | 'boxtitle' | 'labeltitle' | 'group' | 'tab-group' | 'select-group';
 
-// All types except group — used for children inside a GroupConfig
-export type ChildComponentType = Exclude<PriceComponentType, 'group'>;
+// All types except groupers — used for children inside any GroupConfig/TabGroupConfig/SelectGroupConfig
+export type ChildComponentType = Exclude<PriceComponentType, 'group' | 'tab-group' | 'select-group'>;
 
 // ============================================================================
 // INCREMENTAL BAR (type: "bar")
@@ -129,17 +129,44 @@ export interface GroupConfig {
 }
 
 // ============================================================================
+// TAB GROUP — Agrupador de pestañas (type: "tab-group")
+// ============================================================================
+export interface TabGroupTab {
+  title: string;
+  children: GroupChild[];
+}
+
+export interface TabGroupConfig {
+  tabs: TabGroupTab[];
+}
+
+// ============================================================================
+// SELECT GROUP — Agrupador por selector (type: "select-group")
+// ============================================================================
+export interface SelectGroupOption {
+  title: string;
+  children: GroupChild[];
+}
+
+export interface SelectGroupConfig {
+  label: string;
+  options: SelectGroupOption[];
+}
+
+// ============================================================================
 // TIPO UNION PARA TODAS LAS CONFIGURACIONES
 // ============================================================================
-export type PriceComponentConfig = 
-  | BarConfig 
-  | BoxConfig 
-  | SelectorsConfig 
-  | AdditionalConfig 
+export type PriceComponentConfig =
+  | BarConfig
+  | BoxConfig
+  | SelectorsConfig
+  | AdditionalConfig
   | CustomConfig
   | BoxTitleConfig
   | LabelTitleConfig
-  | GroupConfig;
+  | GroupConfig
+  | TabGroupConfig
+  | SelectGroupConfig;
 
 // ============================================================================
 // ESTRUCTURA COMPLETA DE UN COMPONENTE DE PRECIO

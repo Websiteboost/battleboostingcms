@@ -22,7 +22,7 @@ const serviceSchema = z.object({
   service_points_es: z.array(z.string()).optional().nullable(),
   priceComponents: z.array(z.object({
     service_id: z.string().optional(),
-    type: z.enum(['bar', 'box', 'custom', 'selectors', 'additional', 'boxtitle', 'labeltitle', 'group']),
+    type: z.enum(['bar', 'box', 'custom', 'selectors', 'additional', 'boxtitle', 'labeltitle', 'group', 'tab-group', 'select-group']),
     config: z.any(),
     config_es: z.any().optional(),
     display_order: z.number().optional(),
@@ -318,9 +318,11 @@ export async function duplicateService(serviceId: string) {
       const componentsWithoutId = priceComponents.map((pc, i) => ({
         type: pc.type,
         config: pc.config,
+        config_es: pc.config_es ?? null,
         display_order: pc.display_order ?? i,
         required: pc.required ?? false,
         estimated_time: pc.estimated_time ?? 0,
+        discount_percent: pc.discount_percent ?? 0,
       }));
       await replaceServicePriceComponents(newServiceId, componentsWithoutId);
     }
