@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npx next *)",
+      "Bash(npm run *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\DevCode\\\\Repositories\\\\Webcarry - CMS\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Select-String -Pattern \"\\(games|categories|services|actions|components\\)\")",
+      "Bash(Head-20)"
+    ]
+  }
+}

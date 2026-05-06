@@ -16,9 +16,9 @@ const gameSchema = z.object({
 export async function getGames() {
   try {
     const result = await sql`
-      SELECT id, title, category, image, created_at
+      SELECT id, title, category, image, created_at, display_order
       FROM games
-      ORDER BY created_at DESC
+      ORDER BY display_order ASC, created_at ASC
     `;
     return { success: true, data: result as Game[] };
   } catch (error) {
@@ -69,9 +69,12 @@ export async function createGame(data: z.infer<typeof gameSchema>) {
       counter++;
     }
 
+    const maxOrder = await sql`SELECT COALESCE(MAX(display_order), 0) AS max FROM games`;
+    const nextOrder = (maxOrder[0].max as number) + 1;
+
     await sql`
-      INSERT INTO games (id, title, category, image)
-      VALUES (${gameId}, ${title}, ${category}, ${image})
+      INSERT INTO games (id, title, category, image, display_order)
+      VALUES (${gameId}, ${title}, ${category}, ${image}, ${nextOrder})
     `;
     revalidatePath('/dashboard/games');
     return { success: true, message: 'Juego creado exitosamente' };
@@ -118,6 +121,25 @@ export async function updateGame(data: z.infer<typeof gameSchema>) {
   } catch (error) {
     console.error('Error updating game:', error);
     return { success: false, error: 'Error al actualizar el juego' };
+  }
+}
+
+export async function reorderGames(items: { id: string; display_order: number }[]) {
+  const session = await getServerSession(authOptions);
+  if (!session) return { success: false, error: 'No autorizado' };
+
+  try {
+    for (const item of items) {
+      await sql`UPDATE games SET display_order = ${-(item.display_order)} WHERE id = ${item.id}`;
+    }
+    for (const item of items) {
+      await sql`UPDATE games SET display_order = ${item.display_order} WHERE id = ${item.id}`;
+    }
+    revalidatePath('/dashboard/games');
+    return { success: true };
+  } catch (error) {
+    console.error('Error al reordenar juegos:', error);
+    return { success: false, error: 'Error al reordenar' };
   }
 }
 

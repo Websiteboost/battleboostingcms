@@ -12,6 +12,7 @@ export interface Game {
   category: string;
   image: string;
   created_at: Date;
+  display_order?: number;
 }
 
 export interface Category {

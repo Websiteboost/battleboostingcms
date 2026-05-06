@@ -1,71 +1,99 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo, memo } from 'react';
-import { getGames, deleteGame, createGame, updateGame } from '@/app/actions/games';
+import { useEffect, useState, useCallback, memo } from 'react';
+import { getGames, deleteGame, createGame, updateGame, reorderGames } from '@/app/actions/games';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { GameForm } from '@/components/forms/GameForm';
-import { Pencil, Trash2, Plus, Image as ImageIcon } from 'lucide-react';
+import { Pencil, Trash2, Plus, Image as ImageIcon, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
 import type { Game } from '@/types';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 
-// GameCard como componente memoizado separado
-const GameCard = memo(({ 
-  game, 
-  imageError, 
-  onImageError, 
-  onEdit, 
-  onDelete 
-}: { 
-  game: Game; 
+const GameCard = memo(({
+  game,
+  imageError,
+  onImageError,
+  onEdit,
+  onDelete,
+  isDragging,
+  isDragOver,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+}: {
+  game: Game;
   imageError: boolean;
   onImageError: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  isDragging: boolean;
+  isDragOver: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: () => void;
+  onDrop: (e: React.DragEvent) => void;
 }) => {
   return (
-    <Card className="overflow-hidden">
-      <div className="relative h-40 sm:h-48 bg-slate-800">
-        {!imageError && game.image ? (
-          <Image
-            src={game.image}
-            alt={game.title}
-            fill
-            className="object-cover"
-            onError={onImageError}
-            unoptimized
-            loading="eager"
-            priority
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <ImageIcon size={40} className="sm:w-12 sm:h-12 text-gray-600" />
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={`cursor-grab active:cursor-grabbing transition-all duration-150 rounded-lg ${
+        isDragging ? 'opacity-50' : ''
+      } ${isDragOver ? 'scale-[1.02] ring-1 ring-cyber-purple/60' : ''}`}
+    >
+      <Card className={`overflow-hidden h-full ${isDragOver ? 'border-cyber-purple' : ''}`}>
+        <div className="relative h-40 sm:h-48 bg-slate-800">
+          {/* Grip + posición */}
+          <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
+            <GripVertical size={13} className="text-gray-400" />
+            {game.display_order !== undefined && (
+              <span className="text-xs font-bold bg-slate-900/80 text-gray-300 px-1.5 py-0.5 rounded">
+                #{game.display_order}
+              </span>
+            )}
           </div>
-        )}
-      </div>
-      <div className="p-3 sm:p-4">
-        <h3 className="text-base sm:text-lg font-bold mb-1 truncate">{game.title}</h3>
-        <p className="text-xs sm:text-sm text-gray-400 mb-3 sm:mb-4 truncate">{game.category}</p>
-        <div className="flex gap-2">
-          <Button 
-            variant="secondary" 
-            className="flex-1"
-            onClick={onEdit}
-          >
-            <Pencil size={16} />
-          </Button>
-          <Button 
-            variant="danger" 
-            className="flex-1"
-            onClick={onDelete}
-          >
-            <Trash2 size={16} />
-          </Button>
+
+          {!imageError && game.image ? (
+            <Image
+              src={game.image}
+              alt={game.title}
+              fill
+              className="object-cover"
+              onError={onImageError}
+              unoptimized
+              loading="eager"
+              priority
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <ImageIcon size={40} className="sm:w-12 sm:h-12 text-gray-600" />
+            </div>
+          )}
         </div>
-      </div>
-    </Card>
+
+        <div className="p-3 sm:p-4">
+          <h3 className="text-base sm:text-lg font-bold mb-1 truncate">{game.title}</h3>
+          <p className="text-xs sm:text-sm text-gray-400 mb-3 sm:mb-4 truncate">{game.category}</p>
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={onEdit}>
+              <Pencil size={16} />
+            </Button>
+            <Button variant="danger" className="flex-1" onClick={onDelete}>
+              <Trash2 size={16} />
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
   );
 });
 
@@ -77,6 +105,8 @@ export default function GamesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [imageError, setImageError] = useState<Record<string, boolean>>({});
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     loadGames();
@@ -90,6 +120,65 @@ export default function GamesPage() {
     }
     setLoading(false);
   }, []);
+
+  // ── Drag & Drop ─────────────────────────────────────────────────────────────
+
+  const handleDragStart = useCallback((index: number) => {
+    setDragIndex(index);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverIndex(null);
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === dropIndex) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const newGames = [...games];
+    const [moved] = newGames.splice(dragIndex, 1);
+    newGames.splice(dropIndex, 0, moved);
+    const updated = newGames.map((g, i) => ({ ...g, display_order: i + 1 }));
+    setGames(updated);
+    setDragIndex(null);
+    setDragOverIndex(null);
+    await reorderGames(updated.map(g => ({ id: g.id, display_order: g.display_order! })));
+  }, [dragIndex, games]);
+
+  // ── Move desde modal ─────────────────────────────────────────────────────────
+
+  const handleMoveInModal = useCallback(async (direction: 'up' | 'down') => {
+    if (!editingGame) return;
+    const index = games.findIndex(g => g.id === editingGame.id);
+    if (index === -1) return;
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= games.length) return;
+
+    const newGames = [...games];
+    [newGames[index], newGames[targetIndex]] = [newGames[targetIndex], newGames[index]];
+    const updated = newGames.map((g, i) => ({ ...g, display_order: i + 1 }));
+    setGames(updated);
+
+    const updatedEditing = updated.find(g => g.id === editingGame.id);
+    if (updatedEditing) setEditingGame(updatedEditing);
+
+    await reorderGames(updated.map(g => ({ id: g.id, display_order: g.display_order! })));
+  }, [editingGame, games]);
+
+  // ── CRUD ─────────────────────────────────────────────────────────────────────
 
   const openCreateModal = useCallback(() => {
     setEditingGame(null);
@@ -107,13 +196,11 @@ export default function GamesPage() {
   }, []);
 
   const handleFormSubmit = useCallback(async (formData: { title: string; category: string; image: string }) => {
-    const data = editingGame 
+    const data = editingGame
       ? { ...formData, id: editingGame.id }
       : formData;
 
-    const result = editingGame
-      ? await updateGame(data)
-      : await createGame(data);
+    const result = editingGame ? await updateGame(data) : await createGame(data);
 
     if (result.success) {
       toast.success(editingGame ? 'Juego actualizado exitosamente' : 'Juego creado exitosamente', {
@@ -136,25 +223,20 @@ export default function GamesPage() {
 
   const handleDelete = useCallback(async (id: string, title: string) => {
     if (!confirm(`¿Estás seguro de eliminar "${title}"?`)) return;
-    
     const result = await deleteGame(id);
     if (result.success) {
-      toast.success('Juego eliminado exitosamente', {
-        duration: 3000,
-        position: 'top-center',
-      });
+      toast.success('Juego eliminado exitosamente', { duration: 3000, position: 'top-center' });
       await loadGames();
     } else {
-      toast.error(result.error || 'Error al eliminar', {
-        duration: 4000,
-        position: 'top-center',
-      });
+      toast.error(result.error || 'Error al eliminar', { duration: 4000, position: 'top-center' });
     }
   }, [loadGames]);
 
   const handleImageError = useCallback((gameId: string) => {
     setImageError(prev => ({ ...prev, [gameId]: true }));
   }, []);
+
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -165,6 +247,8 @@ export default function GamesPage() {
       </div>
     );
   }
+
+  const editingIndex = editingGame ? games.findIndex(g => g.id === editingGame.id) : -1;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -185,27 +269,68 @@ export default function GamesPage() {
           <Button onClick={openCreateModal} className="w-full sm:w-auto">Crear primer juego</Button>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {games.map((game) => (
-            <GameCard
-              key={game.id}
-              game={game}
-              imageError={imageError[game.id] || false}
-              onImageError={() => handleImageError(game.id)}
-              onEdit={() => openEditModal(game)}
-              onDelete={() => handleDelete(game.id, game.title)}
-            />
-          ))}
-        </div>
+        <>
+          <p className="text-xs text-gray-500 flex items-center gap-1.5">
+            <GripVertical size={12} />
+            Arrastra el juego para editar el orden
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {games.map((game, index) => (
+              <GameCard
+                key={game.id}
+                game={game}
+                imageError={imageError[game.id] || false}
+                onImageError={() => handleImageError(game.id)}
+                onEdit={() => openEditModal(game)}
+                onDelete={() => handleDelete(game.id, game.title)}
+                isDragging={dragIndex === index}
+                isDragOver={dragOverIndex === index}
+                onDragStart={() => handleDragStart(index)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, index)}
+              />
+            ))}
+          </div>
+        </>
       )}
 
-      {/* Modal de Crear/Editar */}
+      {/* Modal Crear/Editar */}
       {isModalOpen && (
         <Modal
           isOpen={isModalOpen}
           onClose={closeModal}
           title={editingGame ? 'Editar Juego' : 'Nuevo Juego'}
         >
+          {/* Controles de posición — solo al editar */}
+          {editingGame && (
+            <div className="flex items-center gap-3 px-1 pb-3 mb-3 border-b border-slate-700">
+              <span className="text-xs text-gray-400">
+                Posición:{' '}
+                <span className="text-white font-medium">#{editingGame.display_order}</span>
+              </span>
+              <div className="flex gap-1.5 ml-auto">
+                <button
+                  type="button"
+                  disabled={editingIndex <= 0}
+                  onClick={() => handleMoveInModal('up')}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-700 text-gray-300 hover:bg-slate-600 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ArrowUp size={13} /> Subir
+                </button>
+                <button
+                  type="button"
+                  disabled={editingIndex >= games.length - 1}
+                  onClick={() => handleMoveInModal('down')}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-700 text-gray-300 hover:bg-slate-600 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ArrowDown size={13} /> Bajar
+                </button>
+              </div>
+            </div>
+          )}
+
           <GameForm
             key={editingGame?.id || 'new'}
             initialData={editingGame ? {
