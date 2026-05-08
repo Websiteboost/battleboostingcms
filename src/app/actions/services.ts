@@ -188,23 +188,22 @@ export async function deleteService(id: string) {
   }
 
   try {
-    // Obtener la URL de la imagen y datos del servicio antes de eliminar
-    const service = await sql`SELECT image, category_id, display_order FROM services WHERE id = ${id}`;
-    
+    const service = await sql`SELECT display_order FROM services WHERE id = ${id}`;
+
     if (service.length === 0) {
       return { success: false, error: 'Servicio no encontrado' };
     }
 
-    const { category_id: categoryId, display_order: deletedOrder } = service[0];
+    const { display_order: deletedOrder } = service[0];
 
     // Eliminar el servicio de la base de datos (cascade eliminará relations)
     await sql`DELETE FROM services WHERE id = ${id}`;
 
-    // Ajustar el orden de los servicios posteriores en la misma categoría
+    // Ajustar el orden de TODOS los servicios posteriores (display_order es global)
     await sql`
       UPDATE services
       SET display_order = display_order - 1
-      WHERE category_id = ${categoryId} AND display_order > ${deletedOrder}
+      WHERE display_order > ${deletedOrder}
     `;
 
     revalidatePath('/dashboard/services');
@@ -246,6 +245,48 @@ export async function reorderServices(items: { id: string; display_order: number
   } catch (error) {
     console.error('Error reordering services:', error);
     return { success: false, error: 'Error al reordenar servicios' };
+  }
+}
+
+export async function moveServiceToPosition(id: string, newPosition: number) {
+  const session = await getServerSession(authOptions);
+  if (!session) return { success: false, error: 'No autorizado' };
+
+  try {
+    const curr = await sql`SELECT display_order FROM services WHERE id = ${id}`;
+    if (!curr.length) return { success: false, error: 'Servicio no encontrado' };
+
+    const [{ total }] = await sql`SELECT COUNT(*) as total FROM services`;
+    const totalCount = Number(total);
+    const oldPos = Number(curr[0].display_order);
+    const newPos = Math.max(1, Math.min(Math.round(newPosition), totalCount));
+
+    if (oldPos === newPos) return { success: true };
+
+    // Valor temporal negativo para evitar conflictos de unicidad
+    await sql`UPDATE services SET display_order = ${-oldPos} WHERE id = ${id}`;
+
+    if (newPos < oldPos) {
+      // Sube: desplaza +1 los que están entre [newPos, oldPos-1]
+      await sql`
+        UPDATE services SET display_order = display_order + 1
+        WHERE display_order >= ${newPos} AND display_order < ${oldPos}
+      `;
+    } else {
+      // Baja: desplaza -1 los que están entre [oldPos+1, newPos]
+      await sql`
+        UPDATE services SET display_order = display_order - 1
+        WHERE display_order > ${oldPos} AND display_order <= ${newPos}
+      `;
+    }
+
+    await sql`UPDATE services SET display_order = ${newPos} WHERE id = ${id}`;
+
+    revalidatePath('/dashboard/services');
+    return { success: true };
+  } catch (error) {
+    console.error('Error moving service to position:', error);
+    return { success: false, error: 'Error al mover el servicio' };
   }
 }
 

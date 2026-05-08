@@ -14,8 +14,9 @@ interface BoxEditorProps {
 }
 
 export const BoxEditor = memo(({ config, onChange, configEs, onChangeEs }: BoxEditorProps) => {
-  const showPrice = config.showPrice !== false; // default true
-  const style = config.style || 'box';
+  const showPrice = config.showPrice !== false;
+  const style     = config.style     || 'box';
+  const selection = config.selection || 'multiple';
 
   const addOption = () => {
     onChange({ ...config, options: [...config.options, { label: '', value: 0 }] });
@@ -39,10 +40,14 @@ export const BoxEditor = memo(({ config, onChange, configEs, onChangeEs }: BoxEd
 
   return (
     <div className="space-y-3 p-4 bg-slate-800/30 rounded-lg border border-cyber-cyan/30">
-      <h4 className="text-sm font-medium text-cyber-cyan">Cajas de Precio (Selección Múltiple)</h4>
+      <h4 className="text-sm font-medium text-cyber-cyan">
+        Cajas {selection === 'single' ? 'Única' : 'Múltiple'}
+      </h4>
 
       {/* Opciones visuales */}
       <div className="flex flex-wrap gap-4 p-3 bg-slate-900/50 rounded-lg border border-slate-700">
+
+        {/* Estilo visual */}
         <div className="flex flex-col gap-1.5">
           <span className="text-xs text-gray-400 font-medium">Estilo visual</span>
           <div className="flex gap-1">
@@ -67,6 +72,7 @@ export const BoxEditor = memo(({ config, onChange, configEs, onChangeEs }: BoxEd
           </div>
         </div>
 
+        {/* Mostrar precio */}
         <div className="flex flex-col gap-1.5">
           <span className="text-xs text-gray-400 font-medium">Mostrar precio</span>
           <div className="flex gap-1">
@@ -90,6 +96,32 @@ export const BoxEditor = memo(({ config, onChange, configEs, onChangeEs }: BoxEd
             </button>
           </div>
         </div>
+
+        {/* Selección */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs text-gray-400 font-medium">Selección</span>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => onChange({ ...config, selection: 'multiple' })}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                selection === 'multiple' ? 'bg-cyber-cyan text-slate-900' : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+              }`}
+            >
+              Múltiple
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange({ ...config, selection: 'single' })}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                selection === 'single' ? 'bg-cyber-cyan text-slate-900' : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+              }`}
+            >
+              Único
+            </button>
+          </div>
+        </div>
+
       </div>
 
       {/* Opciones */}

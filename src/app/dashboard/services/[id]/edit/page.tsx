@@ -37,6 +37,7 @@ export default async function EditServicePage({ params }: Props) {
       service={{ ...service, priceComponents, gameIds }}
       categories={categoriesResult.data ?? []}
       games={gamesResult.data ?? []}
+      totalServices={servicesResult.data?.length ?? 0}
     />
   );
 }

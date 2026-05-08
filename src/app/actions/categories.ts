@@ -217,6 +217,46 @@ export async function reorderCategories(items: { id: string; display_order: numb
   }
 }
 
+export async function moveCategoryToPosition(id: string, newPosition: number) {
+  const session = await getServerSession(authOptions);
+  if (!session) return { success: false, error: 'No autorizado' };
+
+  try {
+    const curr = await sql`SELECT display_order FROM categories WHERE id = ${id}`;
+    if (!curr.length) return { success: false, error: 'Categoría no encontrada' };
+
+    const [{ total }] = await sql`SELECT COUNT(*) as total FROM categories`;
+    const totalCount = Number(total);
+    const oldPos = Number(curr[0].display_order);
+    const newPos = Math.max(1, Math.min(Math.round(newPosition), totalCount));
+
+    if (oldPos === newPos) return { success: true };
+
+    // Valor temporal negativo para evitar conflictos de unicidad
+    await sql`UPDATE categories SET display_order = ${-oldPos} WHERE id = ${id}`;
+
+    if (newPos < oldPos) {
+      await sql`
+        UPDATE categories SET display_order = display_order + 1
+        WHERE display_order >= ${newPos} AND display_order < ${oldPos}
+      `;
+    } else {
+      await sql`
+        UPDATE categories SET display_order = display_order - 1
+        WHERE display_order > ${oldPos} AND display_order <= ${newPos}
+      `;
+    }
+
+    await sql`UPDATE categories SET display_order = ${newPos} WHERE id = ${id}`;
+
+    revalidatePath('/dashboard/categories');
+    return { success: true };
+  } catch (error) {
+    console.error('Error moving category to position:', error);
+    return { success: false, error: 'Error al mover la categoría' };
+  }
+}
+
 export async function duplicateCategory(categoryId: string) {
   const session = await getServerSession(authOptions);
   if (!session) {

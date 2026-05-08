@@ -50,8 +50,9 @@ export interface BoxOption {
 
 export interface BoxConfig {
   options: BoxOption[];
-  showPrice?: boolean;   // Mostrar u ocultar el precio en el front (default: true)
-  style?: 'box' | 'pill'; // Estilo visual: caja cuadrada o píldora (default: 'box')
+  showPrice?: boolean;                  // Mostrar u ocultar el precio en el front (default: true)
+  style?: 'box' | 'pill';              // Estilo visual: caja cuadrada o píldora (default: 'box')
+  selection?: 'multiple' | 'single';   // Selección múltiple o única (default: 'multiple')
 }
 
 // ============================================================================
